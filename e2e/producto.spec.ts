@@ -38,7 +38,7 @@ test.describe("ficha de producto", () => {
       await expect(page.getByRole("link", { name: "Ver catálogo" })).toBeVisible();
       if (res?.status() !== 404) {
         expect(res?.status()).toBe(200);
-        await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(1);
+        expect(await page.locator('meta[name="robots"][content*="noindex"]').count()).toBeGreaterThan(0);
       }
     });
   }

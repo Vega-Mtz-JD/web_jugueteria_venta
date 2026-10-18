@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { MessageCircleIcon, ShoppingBagIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,30 @@ function availability(stock: number): string {
   return "En stock";
 }
 
-export default async function ProductPage({ params }: PageProps<"/producto/[slug]">) {
+// Leer `params` va dentro de <Suspense>: para productos que no estaban en el build,
+// Next sirve primero la cáscara común (App Shell) y luego transmite el contenido.
+export default function ProductPage({ params }: PageProps<"/producto/[slug]">) {
+  return (
+    <Suspense fallback={<ProductSkeleton />}>
+      <ProductContent params={params} />
+    </Suspense>
+  );
+}
+
+function ProductSkeleton() {
+  return (
+    <div aria-hidden className="mx-auto grid max-w-6xl animate-pulse gap-8 px-4 py-10 sm:px-6 md:grid-cols-2 md:gap-12">
+      <div className="aspect-square rounded-3xl bg-crema-2" />
+      <div className="space-y-4">
+        <div className="h-10 w-3/4 rounded-lg bg-crema-2" />
+        <div className="h-8 w-1/3 rounded-lg bg-crema-2" />
+        <div className="h-24 rounded-lg bg-crema-2" />
+      </div>
+    </div>
+  );
+}
+
+async function ProductContent({ params }: { params: PageProps<"/producto/[slug]">["params"] }) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
