@@ -21,6 +21,7 @@ test.describe("pago con QR", () => {
     const user = await loginAsNewUser(page);
     const order = await createOrderFor(user.id);
     await page.goto(`/pedidos/${order.id}/pago`);
+    await page.waitForLoadState("networkidle"); // que React ya escuche el input antes de elegir el archivo
     await page.getByLabel("Captura del pago").setInputFiles(fixture("captura.png"));
     await expect(page.getByRole("img", { name: "Vista previa de la captura" })).toBeVisible();
     await page.getByRole("button", { name: "Enviar pedido" }).click();
@@ -32,6 +33,7 @@ test.describe("pago con QR", () => {
     const user = await loginAsNewUser(page);
     const order = await createOrderFor(user.id);
     await page.goto(`/pedidos/${order.id}/pago`);
+    await page.waitForLoadState("networkidle"); // que React ya escuche el input antes de elegir el archivo
     await page.getByLabel("Captura del pago").setInputFiles(fixture("comprobante.pdf"));
     await expect(page.getByText("Sube una imagen (foto o captura de pantalla)")).toBeVisible();
     await expect(page.getByRole("button", { name: "Enviar pedido" })).toBeDisabled();
