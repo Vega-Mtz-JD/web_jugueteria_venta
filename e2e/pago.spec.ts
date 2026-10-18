@@ -1,6 +1,6 @@
 import path from "node:path";
 import { test, expect } from "@playwright/test";
-import { loginAsNewUser } from "./helpers/session";
+import { chooseProof, loginAsNewUser } from "./helpers/session";
 import { createOrderFor, createTestUser, orderStatus } from "./helpers/supabase-admin";
 
 const fixture = (name: string) => path.join(__dirname, "fixtures", name);
@@ -21,11 +21,10 @@ test.describe("pago con QR", () => {
     const user = await loginAsNewUser(page);
     const order = await createOrderFor(user.id);
     await page.goto(`/pedidos/${order.id}/pago`);
-    await page.waitForLoadState("networkidle"); // que React ya escuche el input antes de elegir el archivo
-    await page.getByLabel("Captura del pago").setInputFiles(fixture("captura.png"));
+    await chooseProof(page, fixture("captura.png"));
     await expect(page.getByRole("img", { name: "Vista previa de la captura" })).toBeVisible();
     await page.getByRole("button", { name: "Enviar pedido" }).click();
-    await expect(page).toHaveURL(new RegExp(`/pedidos/${order.id}$`));
+    await expect(page).toHaveURL(new RegExp(`/pedidos/${order.id}$`), { timeout: 15000 }); // comprime y sube la imagen
     expect(await orderStatus(order.id)).toBe("en_revision");
   });
 
@@ -33,8 +32,7 @@ test.describe("pago con QR", () => {
     const user = await loginAsNewUser(page);
     const order = await createOrderFor(user.id);
     await page.goto(`/pedidos/${order.id}/pago`);
-    await page.waitForLoadState("networkidle"); // que React ya escuche el input antes de elegir el archivo
-    await page.getByLabel("Captura del pago").setInputFiles(fixture("comprobante.pdf"));
+    await chooseProof(page, fixture("comprobante.pdf"), false);
     await expect(page.getByText("Sube una imagen (foto o captura de pantalla)")).toBeVisible();
     await expect(page.getByRole("button", { name: "Enviar pedido" })).toBeDisabled();
   });

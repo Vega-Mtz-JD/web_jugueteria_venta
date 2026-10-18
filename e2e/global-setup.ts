@@ -3,7 +3,7 @@
 // recién a los 60 minutos).
 import { adminClient } from "./helpers/supabase-admin";
 
-const SEED_STOCK: Record<string, number> = { uno: 20, "hockey-de-mesa": 5, carcassonne: 4, jenga: 2 };
+const SEED_STOCK: Record<string, number> = { uno: 20, "hockey-de-mesa": 5, carcassonne: 4, jenga: 2, "set-poker-200-fichas": 4 };
 
 export default async function globalSetup() {
   if (process.env.PLAYWRIGHT_BASE_URL) return; // contra una vista previa no se toca ninguna base

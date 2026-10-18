@@ -100,3 +100,23 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
     accountHolder: m.account_holder,
   }));
 }
+
+export type OrderSummary = { id: string; number: number; status: OrderStatus; createdAt: string; totalCents: number; itemCount: number };
+
+/** Pedidos del usuario con sesión, del más reciente al más antiguo. */
+export async function listOrdersForCustomer(): Promise<OrderSummary[]> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id, number, status, created_at, total_cents, order_items(quantity)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data.map((o) => ({
+    id: o.id,
+    number: o.number,
+    status: o.status,
+    createdAt: o.created_at,
+    totalCents: o.total_cents,
+    itemCount: o.order_items.reduce((sum, i) => sum + i.quantity, 0),
+  }));
+}

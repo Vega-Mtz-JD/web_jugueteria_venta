@@ -12,3 +12,11 @@ export async function submitProofAction(orderId: string, path: string): Promise<
   if (error) return { error: error.code === "P0001" ? error.message : "No pudimos enviar la captura. Vuelve a intentarlo." };
   return { ok: true };
 }
+
+export async function cancelOrderAction(orderId: string): Promise<ActionResult> {
+  if (!z.uuid().safeParse(orderId).success) return { error: "No encontramos ese pedido" };
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("cancel_order_by_customer", { p_order_id: orderId });
+  if (error) return { error: error.code === "P0001" ? error.message : "No pudimos cancelar el pedido. Vuelve a intentarlo." };
+  return { ok: true };
+}
