@@ -45,3 +45,18 @@ export function parseCatalogFilters(sp: SearchParams): CatalogFilters {
 
   return filters;
 }
+
+/** Arma la URL del catálogo para unos filtros (inversa de parseCatalogFilters). */
+export function catalogHref(f: CatalogFilters): string {
+  const sp = new URLSearchParams();
+  if (f.categoria) sp.set("categoria", f.categoria);
+  if (f.q) sp.set("q", f.q);
+  if (f.precioMin !== undefined) sp.set("precio_min", String(f.precioMin));
+  if (f.precioMax !== undefined) sp.set("precio_max", String(f.precioMax));
+  if (f.edad !== undefined) sp.set("edad", String(f.edad));
+  if (f.jugadores !== undefined) sp.set("jugadores", String(f.jugadores));
+  if (f.ofertas) sp.set("ofertas", "1");
+  if (f.orden !== "destacados") sp.set("orden", f.orden);
+  const qs = sp.toString();
+  return qs ? `/catalogo?${qs}` : "/catalogo";
+}

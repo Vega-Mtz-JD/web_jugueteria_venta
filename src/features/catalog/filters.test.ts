@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCatalogFilters } from "./filters";
+import { catalogHref, parseCatalogFilters } from "./filters";
 
 describe("parseCatalogFilters", () => {
   it("sin parámetros usa el orden por defecto", () => {
@@ -41,5 +41,23 @@ describe("parseCatalogFilters", () => {
   it("ofertas solo se activa con ofertas=1", () => {
     expect(parseCatalogFilters({ ofertas: "1" })).toEqual({ ofertas: true, orden: "destacados" });
     expect(parseCatalogFilters({ ofertas: "si" })).toEqual({ orden: "destacados" });
+  });
+});
+
+describe("catalogHref", () => {
+  it("sin filtros apunta al catálogo limpio", () => {
+    expect(catalogHref({ orden: "destacados" })).toBe("/catalogo");
+  });
+
+  it("escribe los filtros con los nombres de la URL y omite el orden por defecto", () => {
+    expect(
+      catalogHref({ categoria: "cartas", q: "uno dos", precioMin: 20, precioMax: 100, edad: 8, jugadores: 4, ofertas: true, orden: "precio_asc" }),
+    ).toBe("/catalogo?categoria=cartas&q=uno+dos&precio_min=20&precio_max=100&edad=8&jugadores=4&ofertas=1&orden=precio_asc");
+  });
+
+  it("ida y vuelta con parseCatalogFilters", () => {
+    const f = { categoria: "casino", jugadores: 2, orden: "nuevos" as const };
+    const sp = Object.fromEntries(new URL(catalogHref(f), "http://x").searchParams);
+    expect(parseCatalogFilters(sp)).toEqual(f);
   });
 });
