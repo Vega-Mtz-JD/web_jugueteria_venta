@@ -27,7 +27,7 @@ Modelo de negocio entre Diego y el cliente: una prueba casi gratis primero. Cuan
 ## 2. Usuarios
 
 - **Compradores:** niños (con sus padres), familias y estudiantes. Entran sobre todo desde el celular, muchos desde enlaces de WhatsApp o redes. **[decisión mía]**
-- **Dueño:** atiende él mismo desde su **celular Android**. A veces tiene ayuda, pero le cuesta la tecnología. Todo lo suyo debe ser lo más simple posible.
+- **Dueño:** atiende él mismo desde su **celular Android** o desde la **PC de su tienda** **[cliente]**. A veces tiene ayuda, pero le cuesta la tecnología. Todo lo suyo debe ser lo más simple posible.
 - **Ayudante del dueño:** puede atender pedidos con su propia cuenta de administrador. **[decisión mía]**, porque el dueño dijo que a veces tiene ayuda.
 - **Visitantes del portafolio** (etapa 2): otros negocios que prueban la versión de demostración.
 
@@ -158,8 +158,9 @@ Está aprobado sobre el boceto `flujo-compra.html`. Los pasos son:
 
 **Seguridad:** las capturas de pago son **privadas**. Solo las ven el comprador dueño del pedido y los administradores.
 
-### 5.5 Panel del dueño (PWA, pensado primero para el celular)
-- **Instalación:** se instala en la pantalla de inicio de Android y abre directo en "Pedidos".
+### 5.5 Panel del dueño (PWA, pensado primero para el celular y también cómodo en la PC de la tienda)
+- **Instalación:** se instala en la pantalla de inicio de Android y abre directo en "Pedidos". En la PC se usa desde el navegador (Chrome o Edge), que también permite instalarlo como app.
+- **En pantallas grandes:** se aprovecha el ancho, por ejemplo con la lista de pedidos a la izquierda y el detalle a la derecha. Los botones siguen igual de claros.
 - **Pantallas de pedidos:**
   - **Pedidos**, con pestañas *Por revisar*, *Por enviar o entregar* e *Historial*.
   - **Detalle del pedido:**
@@ -190,7 +191,7 @@ Está aprobado sobre el boceto `flujo-compra.html`. Los pasos son:
 
 ### 5.6 Avisos
 - **Al dueño y sus administradores:**
-  - Una **notificación web (Web Push)** en el celular apenas entra un pedido con captura, o cuando un comprador vuelve a subir una captura tras un rechazo. Ejemplo: *"Nuevo pedido #0231 · Bs 570 · Encomienda a Cochabamba"*. Al tocarla, se abre ese pedido.
+  - Una **notificación web (Web Push)** en el celular, y también en el navegador de la PC de la tienda si el dueño la activa ahí, apenas entra un pedido con captura, o cuando un comprador vuelve a subir una captura tras un rechazo. Ejemplo: *"Nuevo pedido #0231 · Bs 570 · Encomienda a Cochabamba"*. Al tocarla, se abre ese pedido.
   - Un correo de respaldo con lo mismo.
 - **Al comprador:**
   - Correos de *pedido recibido*, *pago confirmado*, *pago rechazado (con motivo)* y *enviado / listo para recoger*.
