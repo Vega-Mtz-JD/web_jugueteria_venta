@@ -16,7 +16,12 @@ export async function generateMetadata({ searchParams }: PageProps<"/catalogo">)
     getStoreSettings(),
   ]);
   const category = categories.find((c) => c.slug === filters.categoria);
-  return { title: `${category?.name ?? "Catálogo"} · ${settings.storeName}` };
+  return {
+    title: `${category?.name ?? "Catálogo"} · ${settings.storeName}`,
+    description: category
+      ? `${category.name} en ${settings.storeName}: precios en bolivianos, envíos a toda Bolivia y pago con QR.`
+      : `Catálogo de juegos de mesa de ${settings.storeName} en La Paz: ajedrez, cubos, cartas, casino y más. Envíos a toda Bolivia.`,
+  };
 }
 
 function hasActiveFilters(f: Filters): boolean {
@@ -77,7 +82,10 @@ async function CatalogContent({ searchParams }: { searchParams: PageProps<"/cata
           )}
         </aside>
 
-        <section aria-label="Resultados">
+        <section aria-labelledby="resultados">
+          <h2 id="resultados" className="sr-only">
+            Resultados
+          </h2>
           {products.length > 0 ? (
             <ProductGrid products={products} columns={3} />
           ) : (

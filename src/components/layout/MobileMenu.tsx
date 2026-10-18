@@ -14,7 +14,7 @@ export function MobileMenu({ storeName }: { storeName: string }) {
           <MenuIcon className="size-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="bg-crema px-6 pt-14">
+      <SheetContent side="right" className="overscroll-contain bg-crema px-6 pt-14">
         <SheetTitle className="font-serif text-2xl">{storeName}</SheetTitle>
         <nav className="mt-4 flex flex-col">
           {NAV_LINKS.map((link) => (

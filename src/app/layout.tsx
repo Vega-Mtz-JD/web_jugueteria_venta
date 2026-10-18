@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { siteUrl } from "@/lib/site";
 import "./globals.css";
@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   title: "Ludiq",
   description: "Juegos de mesa para pensar y compartir, en La Paz, Bolivia.",
 };
+
+export const viewport: Viewport = { themeColor: "#f6efe3" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

@@ -75,6 +75,8 @@ export function CatalogSearch({ current }: { current: Filters }) {
       <SearchIcon aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
       <input
         type="search"
+        name="q"
+        autoComplete="off"
         aria-label="Buscar juegos"
         placeholder="Buscar por nombre: Catán, UNO, ajedrez…"
         value={value}
@@ -86,11 +88,13 @@ export function CatalogSearch({ current }: { current: Filters }) {
 }
 
 function PriceInput({
+  name,
   label,
   placeholder,
   urlValue,
   onApply,
 }: {
+  name: string;
   label: string;
   placeholder: string;
   urlValue: number | undefined;
@@ -107,6 +111,8 @@ function PriceInput({
       type="number"
       inputMode="numeric"
       min={0}
+      name={name}
+      autoComplete="off"
       aria-label={label}
       placeholder={placeholder}
       value={value}
@@ -124,8 +130,8 @@ function FilterControls({ current, className }: { current: Filters; className?: 
     <div className={cn("grid gap-4", className)}>
       <fieldset className="grid grid-cols-2 gap-2">
         <legend className="mb-1.5 text-sm font-medium">Precio (Bs)</legend>
-        <PriceInput label="Precio mínimo" placeholder="Desde" urlValue={current.precioMin} onApply={(v) => apply({ precioMin: v })} />
-        <PriceInput label="Precio máximo" placeholder="Hasta" urlValue={current.precioMax} onApply={(v) => apply({ precioMax: v })} />
+        <PriceInput name="precio_min" label="Precio mínimo" placeholder="Desde" urlValue={current.precioMin} onApply={(v) => apply({ precioMin: v })} />
+        <PriceInput name="precio_max" label="Precio máximo" placeholder="Hasta" urlValue={current.precioMax} onApply={(v) => apply({ precioMax: v })} />
       </fieldset>
       <label className="grid gap-1.5 text-sm font-medium">
         ¿Qué edad tiene quien juega?
@@ -192,7 +198,7 @@ export function CatalogFilters({ current }: { current: Filters }) {
             Filtros
           </Button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-3xl bg-crema px-5 pb-8 pt-6">
+        <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-3xl bg-crema px-5 pb-8 pt-6">
           <SheetTitle className="font-serif text-xl">Filtros</SheetTitle>
           <FilterControls current={current} />
         </SheetContent>

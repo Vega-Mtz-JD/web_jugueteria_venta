@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { isMotionPaused, MOTION_EVENT } from "./MotionToggle";
 
 // Cabinas del teleférico: colores de las líneas Roja, Amarilla y Verde.
 const CABINS = [
@@ -37,13 +38,19 @@ export function IllimaniLandscape() {
       if (media.matches) {
         el.setCurrentTime(STILL_TIME_S);
         el.pauseAnimations();
+      } else if (isMotionPaused()) {
+        el.pauseAnimations();
       } else {
         el.unpauseAnimations();
       }
     };
     sync();
     media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
+    window.addEventListener(MOTION_EVENT, sync);
+    return () => {
+      media.removeEventListener("change", sync);
+      window.removeEventListener(MOTION_EVENT, sync);
+    };
   }, []);
   return (
     <svg ref={svg} viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice" aria-hidden className="size-full">

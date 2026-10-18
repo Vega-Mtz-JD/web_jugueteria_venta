@@ -132,7 +132,7 @@ async function ProductContent({ params }: { params: PageProps<"/producto/[slug]"
             {settings.whatsappPhone && (
               <Button asChild size="lg" variant="outline" className="sm:flex-1">
                 <a
-                  href={buildWhatsAppLink(settings.whatsappPhone, `Hola, consulto por el producto "${product.name}"`)}
+                  href={buildWhatsAppLink(settings.whatsappPhone, `Hola, consulto por el producto “${product.name}”`)}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

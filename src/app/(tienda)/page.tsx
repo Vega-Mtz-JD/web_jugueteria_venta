@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Cube3D } from "@/components/brand/Cube3D";
 import { FloatingPieces } from "@/components/brand/FloatingPieces";
 import { IllimaniLandscape } from "@/components/brand/IllimaniLandscape";
+import { MotionToggle } from "@/components/brand/MotionToggle";
 import { RevealItem } from "@/components/brand/Reveal";
 import { Button } from "@/components/ui/button";
 import { CategoryGrid } from "@/features/catalog/CategoryGrid";
@@ -97,6 +98,9 @@ export default async function Home() {
             />
             <FloatingPieces />
             <Cube3D />
+            <div className="absolute bottom-0 right-0">
+              <MotionToggle />
+            </div>
           </div>
         </div>
       </section>
@@ -120,7 +124,7 @@ export default async function Home() {
           </div>
           <ul className="flex flex-wrap gap-2">
             {["Yape", "Altoke", "Yasta"].map((wallet) => (
-              <li key={wallet} className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-sm font-semibold">
+              <li key={wallet} translate="no" className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-sm font-semibold">
                 {wallet}
               </li>
             ))}

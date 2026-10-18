@@ -89,6 +89,16 @@
   html {
     @apply font-sans;
     -webkit-text-size-adjust: 100%;
+    /* La cabecera es fija: al saltar a un ancla o enfocar, que no tape el contenido. */
+    scroll-padding-top: 5rem;
+  }
+  a,
+  button,
+  input,
+  select,
+  label,
+  summary {
+    touch-action: manipulation;
   }
   body {
     @apply bg-background text-foreground;
@@ -103,6 +113,13 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+}
+
+/* Botón "Pausar animaciones" de la portada. */
+:root[data-motion="paused"] *,
+:root[data-motion="paused"] *::before,
+:root[data-motion="paused"] *::after {
+  animation-play-state: paused !important;
 }
 
 /* Quien pidió menos movimiento en su sistema no ve animaciones decorativas. */
