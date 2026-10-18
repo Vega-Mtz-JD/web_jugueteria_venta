@@ -1,0 +1,20 @@
+# Sesiones del servidor de bocetos (brainstorming)
+.superpowers/
+
+# Ajustes locales de Claude Code
+.claude/settings.local.json
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Dependencias y builds
+node_modules/
+.next/
+out/
+.netlify/
+
+# Sistema
+.DS_Store
+*.log

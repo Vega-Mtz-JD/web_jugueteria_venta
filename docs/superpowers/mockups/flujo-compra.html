@@ -1,0 +1,104 @@
+<h2>Así entiendo el flujo de compra</h2>
+<p class="subtitle">Boceto de estructura, no de diseño final. Arriba lo que ve el comprador, abajo lo que ve el dueño en su celular.</p>
+
+<style>
+  .flow { display:flex; gap:14px; overflow-x:auto; padding:8px 2px 16px; }
+  .phone { flex:0 0 190px; border:2px solid currentColor; border-radius:22px; padding:12px 10px; opacity:.95; font-size:12px; line-height:1.35; }
+  .phone h4 { margin:0 0 8px; font-size:13px; }
+  .step { font-size:11px; text-transform:uppercase; letter-spacing:.06em; opacity:.6; margin-bottom:4px; }
+  .box { border:1px dashed currentColor; border-radius:8px; padding:6px; margin:6px 0; opacity:.85; }
+  .row { display:flex; gap:6px; }
+  .row .box { flex:1; text-align:center; }
+  .btn { display:block; text-align:center; border-radius:8px; padding:6px; margin-top:8px; background:#2f6fed; color:#fff; font-weight:600; }
+  .btn.alt { background:transparent; border:1px solid currentColor; color:inherit; }
+  .btn.ok { background:#1f9d55; } .btn.no { background:#d64545; }
+  .qr { width:80px; height:80px; margin:6px auto; background:repeating-conic-gradient(currentColor 0 25%, transparent 0 50%) 0 0/16px 16px; opacity:.5; border-radius:4px; }
+  .tag { display:inline-block; font-size:10px; padding:1px 6px; border-radius:10px; background:#f2b630; color:#222; font-weight:600; }
+  .arrow { align-self:center; font-size:22px; opacity:.5; flex:0 0 auto; }
+  .lane { margin-top:6px; }
+</style>
+
+<div class="section lane">
+  <h3>Comprador</h3>
+  <div class="flow">
+    <div class="phone">
+      <div class="step">1 · Sin cuenta</div>
+      <h4>Explorar catálogo</h4>
+      <div class="row"><div class="box">Ajedrez</div><div class="box">Rubik</div></div>
+      <div class="row"><div class="box">Juegos de mesa</div><div class="box">Lógica</div></div>
+      <div class="box">Filtros: edad · precio · tipo</div>
+      <div class="row"><div class="box">🧩<br>S/ 45</div><div class="box">♟️<br>S/ 80</div></div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="phone">
+      <div class="step">2 · Sin cuenta</div>
+      <h4>Carrito</h4>
+      <div class="box">Cubo 3x3 · S/ 45</div>
+      <div class="box">Ajedrez de madera · S/ 80</div>
+      <div class="box">Total: S/ 125</div>
+      <span class="btn">Comprar</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="phone">
+      <div class="step">3 · Aquí pide cuenta</div>
+      <h4>Ingresa para comprar</h4>
+      <div class="box">Correo o celular</div>
+      <div class="box">Contraseña</div>
+      <span class="btn">Ingresar</span>
+      <span class="btn alt">Crear cuenta</span>
+      <p style="opacity:.6;margin:6px 0 0">El carrito no se pierde.</p>
+    </div>
+    <div class="arrow">→</div>
+    <div class="phone">
+      <div class="step">4</div>
+      <h4>¿Cómo lo recibes?</h4>
+      <div class="box">◯ Recojo en tienda</div>
+      <div class="box">◯ Envío en la ciudad</div>
+      <div class="box">◉ Encomienda por bus a otro departamento<br><span style="opacity:.7">Nombre · DNI · Departamento · Agencia</span></div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="phone">
+      <div class="step">5</div>
+      <h4>Paga con QR</h4>
+      <div class="row"><div class="box">Yape</div><div class="box">Altoke</div><div class="box">Yasta</div></div>
+      <div class="qr"></div>
+      <div class="box" style="text-align:center">Monto: S/ 125</div>
+      <div class="box">📎 Sube la captura del pago</div>
+      <span class="btn">Enviar pedido</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="phone">
+      <div class="step">6</div>
+      <h4>Pedido #0231</h4>
+      <span class="tag">En revisión</span>
+      <p>Te avisaremos cuando confirmemos tu pago.</p>
+      <div class="box">Estados: En revisión → Pagado → Enviado / Listo para recoger</div>
+    </div>
+  </div>
+</div>
+
+<div class="section lane">
+  <h3>Dueño (desde su celular)</h3>
+  <div class="flow">
+    <div class="phone">
+      <h4>Pedidos por revisar (3)</h4>
+      <div class="box">#0231 · S/ 125 · Encomienda <span class="tag">nuevo</span></div>
+      <div class="box">#0230 · S/ 45 · Recojo</div>
+      <div class="box">#0229 · S/ 210 · Envío ciudad</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="phone">
+      <h4>Pedido #0231</h4>
+      <div class="box" style="height:70px;display:flex;align-items:center;justify-content:center">🖼️ Captura del Yape</div>
+      <div class="box">Esperado: S/ 125</div>
+      <div class="row"><span class="btn ok" style="flex:1">Confirmar</span><span class="btn no" style="flex:1">Rechazar</span></div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="phone">
+      <h4>Marcar como enviado</h4>
+      <div class="box">Agencia: ______</div>
+      <div class="box">Código de encomienda: ______</div>
+      <span class="btn">Avisar al comprador</span>
+    </div>
+  </div>
+</div>

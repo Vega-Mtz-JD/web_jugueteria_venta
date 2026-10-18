@@ -1,0 +1,197 @@
+<h2>Versión con el Illimani y hecho en La Paz</h2>
+<p class="subtitle">Nuevo: el Illimani y la ciudad de fondo, con cabinas del teleférico cruzando. Precios en Bs. Base cálida de B (crema, madera, verde tablero) sin el modo oscuro de C, pero con movimiento: cubo 3D girando, piezas flotando, tarjetas que reaccionan al pasar el mouse. <b>Pasa el mouse por los productos y categorías.</b> Achica la ventana para ver la versión celular.</p>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  .lv { --crema:#f6efe3; --crema2:#efe4d2; --tinta:#2b2118; --madera:#7a5230; --verde:#1f4d3a; --verde2:#2c6a50; --mostaza:#c9a227; --rojo:#c0392b;
+        font-family:Inter, system-ui, sans-serif; color:var(--tinta); background:var(--crema); border-radius:14px; overflow:hidden; position:relative; }
+  .lv * { box-sizing:border-box; }
+  .lv .serif { font-family:Fraunces, Georgia, serif; }
+
+  /* nav con vidrio */
+  .lv nav { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:22px; padding:14px 26px; font-size:14px; font-weight:500;
+            background:rgba(246,239,227,.72); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid #e3d5bf; }
+  .lv nav .logo { font-family:Fraunces, serif; font-weight:800; font-size:22px; margin-right:auto; display:flex; align-items:center; gap:8px; }
+  .lv nav .logo .mini3 { display:grid; grid-template-columns:repeat(3,6px); gap:1.5px; padding:2px; background:var(--tinta); border-radius:3px; }
+  .lv nav .logo .mini3 i { width:6px; height:6px; border-radius:1px; }
+  .lv nav a { position:relative; color:inherit; text-decoration:none; }
+  .lv nav a::after { content:""; position:absolute; left:0; bottom:-4px; height:2px; width:0; background:var(--verde); transition:width .25s ease; }
+  .lv nav a:hover::after { width:100%; }
+  .lv nav .cart { background:var(--verde); color:var(--crema); padding:7px 14px; border-radius:999px; font-weight:600; }
+
+  /* hero */
+  .lv .hero { display:grid; grid-template-columns:1.15fr 1fr; gap:24px; align-items:center; padding:46px 34px 40px; position:relative;
+              background: radial-gradient(circle at 85% 30%, #e9d4ad 0, transparent 45%), radial-gradient(circle at 10% 90%, #e7dccb 0, transparent 40%); }
+  .lv .eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--verde); background:#e4ecdf; padding:5px 12px; border-radius:999px; margin-bottom:14px; }
+  .lv .hero h1 { font-family:Fraunces, serif; font-weight:800; font-size:clamp(32px, 5vw, 52px); line-height:1.02; letter-spacing:-1px; margin:0 0 14px; }
+  .lv .hero h1 em { font-style:italic; color:var(--verde); position:relative; }
+  .lv .hero h1 em::after { content:""; position:absolute; left:0; right:0; bottom:4px; height:10px; background:#c9a22755; z-index:-1; border-radius:4px; }
+  .lv .hero p { font-size:16px; line-height:1.55; color:#5a4430; max-width:440px; margin:0 0 22px; }
+  .lv .btns { display:flex; gap:12px; flex-wrap:wrap; }
+  .lv .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 20px; border-radius:10px; font-weight:600; font-size:15px; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease, background .2s; }
+  .lv .btn.pri { background:var(--verde); color:var(--crema); box-shadow:0 8px 20px -8px #1f4d3aaa; }
+  .lv .btn.pri:hover { transform:translateY(-2px); background:var(--verde2); box-shadow:0 14px 26px -10px #1f4d3acc; }
+  .lv .btn.pri .ar { transition:transform .2s; } .lv .btn.pri:hover .ar { transform:translateX(4px); }
+  .lv .btn.sec { border:1.5px solid var(--madera); color:var(--madera); }
+  .lv .btn.sec:hover { background:#7a523014; }
+  .lv .trust { display:flex; gap:18px; margin-top:22px; font-size:13px; color:#6b5641; flex-wrap:wrap; }
+
+  /* escena 3D */
+  .lv .stage { position:relative; height:300px; display:flex; align-items:center; justify-content:center; perspective:900px; }
+  .lv .stage .plate { position:absolute; width:260px; height:260px; border-radius:50%; background:radial-gradient(circle, #1f4d3a 0, #1f4d3a 62%, transparent 63%); opacity:.95; }
+  .lv .stage .plate::before { content:""; position:absolute; inset:28px; border-radius:50%; background:repeating-conic-gradient(#2c6a50 0 25%, #1f4d3a 0 50%) 0 0/34px 34px; opacity:.5; }
+  .lv .cube3d { width:130px; height:130px; position:relative; transform-style:preserve-3d; animation:spin 16s linear infinite; }
+  .lv .stage:hover .cube3d { animation-duration:5s; }
+  .lv .f { position:absolute; inset:0; display:grid; grid-template-columns:repeat(3,1fr); gap:5px; padding:6px; background:var(--tinta); border-radius:14px; }
+  .lv .f i { border-radius:6px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.18), inset 0 2px 0 rgba(255,255,255,.25); }
+  .lv .fr { transform:translateZ(65px); } .lv .bk { transform:rotateY(180deg) translateZ(65px); }
+  .lv .rt { transform:rotateY(90deg) translateZ(65px); } .lv .lf { transform:rotateY(-90deg) translateZ(65px); }
+  .lv .tp { transform:rotateX(90deg) translateZ(65px); } .lv .bt { transform:rotateX(-90deg) translateZ(65px); }
+  .lv i.r{background:#c0392b} .lv i.c{background:#f3e6c8} .lv i.g{background:#3f8a63} .lv i.y{background:#d9b23a} .lv i.o{background:#d9822b} .lv i.b{background:#2f5d8a}
+  @keyframes spin { from { transform:rotateX(-24deg) rotateY(0deg); } to { transform:rotateX(-24deg) rotateY(360deg); } }
+  .lv .piece { position:absolute; font-size:46px; color:var(--tinta); filter:drop-shadow(0 10px 8px rgba(43,33,24,.25)); animation:float 5s ease-in-out infinite; }
+  .lv .piece.p1 { left:8%; top:14%; } .lv .piece.p2 { right:6%; bottom:10%; animation-delay:-2.5s; font-size:40px; color:#f3e6c8; text-shadow:0 0 1px #2b2118, 0 0 1px #2b2118; }
+  .lv .piece.p3 { right:14%; top:4%; animation-delay:-1.2s; font-size:30px; }
+  @keyframes float { 0%,100% { transform:translateY(0) rotate(-6deg); } 50% { transform:translateY(-14px) rotate(6deg); } }
+
+
+  /* paisaje paceño */
+  .lv .hero { overflow:hidden; padding-bottom:120px; background: linear-gradient(180deg, #f6efe3 0%, #f3e3cf 55%, #efd9bf 100%); }
+  .lv .hero > * { position:relative; z-index:2; }
+  .lv .hero > .land { position:absolute; left:0; right:0; bottom:0; height:78%; z-index:0; pointer-events:none; }
+  .lv .hero > .land svg { width:100%; height:100%; display:block; }
+  .lv .hero .sun { position:absolute; z-index:0; width:180px; height:180px; border-radius:50%; right:30%; top:8%; background:radial-gradient(circle, #f2c879 0, #f2c87955 40%, transparent 70%); }
+  @media (max-width: 760px) { .lv .hero { padding-bottom:170px; } .lv .hero > .land { height:210px; } }
+
+  /* categorías */
+  .lv section { padding:30px 34px; }
+  .lv .sec-head { display:flex; align-items:end; justify-content:space-between; margin-bottom:18px; }
+  .lv .sec-head h2 { font-family:Fraunces, serif; font-weight:800; font-size:28px; margin:0; letter-spacing:-.5px; }
+  .lv .sec-head a { color:var(--verde); font-weight:600; font-size:14px; text-decoration:none; }
+  .lv .cats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .lv .cat { position:relative; padding:18px; border-radius:16px; background:var(--crema2); overflow:hidden; cursor:pointer; transition:transform .25s ease, background .25s; min-height:120px; }
+  .lv .cat:hover { transform:translateY(-4px); background:#e9dcc6; }
+  .lv .cat b { font-family:Fraunces, serif; font-size:18px; display:block; }
+  .lv .cat span { font-size:12px; color:#6b5641; }
+  .lv .cat .ic { position:absolute; right:-6px; bottom:-10px; font-size:64px; opacity:.85; transition:transform .35s cubic-bezier(.3,1.6,.5,1); }
+  .lv .cat:hover .ic { transform:rotate(-12deg) scale(1.12); }
+
+  /* productos */
+  .lv .prods { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+  .lv .prod { background:#fffaf1; border:1px solid #eadcc4; border-radius:18px; padding:12px; transition:transform .3s ease, box-shadow .3s ease; cursor:pointer; }
+  .lv .prod:hover { transform:translateY(-6px); box-shadow:0 22px 40px -22px rgba(43,33,24,.45); }
+  .lv .prod .img { height:150px; border-radius:12px; background:var(--crema2); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; perspective:500px; }
+  .lv .prod .img .badge { position:absolute; left:10px; top:10px; background:var(--rojo); color:#fff; font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; }
+  .lv .prod .img .fav { position:absolute; right:10px; top:10px; width:30px; height:30px; border-radius:50%; background:#fffaf1; display:flex; align-items:center; justify-content:center; font-size:14px; opacity:0; transform:scale(.6); transition:.25s; }
+  .lv .prod:hover .fav { opacity:1; transform:scale(1); }
+  .lv .prod .art { transition:transform .5s cubic-bezier(.3,1.4,.5,1); }
+  .lv .prod:hover .art { transform:rotateY(25deg) rotateX(10deg) scale(1.1); }
+  .lv .mc { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; width:74px; height:74px; padding:4px; background:var(--tinta); border-radius:9px; }
+  .lv .mc i { border-radius:3px; }
+  .lv .brd { width:82px; height:82px; border-radius:6px; background:repeating-conic-gradient(#7a5230 0 25%, #e9d4ad 0 50%) 0 0/20.5px 20.5px; box-shadow:0 0 0 5px #5a3a20; }
+  .lv .emo { font-size:62px; }
+  .lv .prod .meta { padding:10px 4px 2px; }
+  .lv .prod .tag { font-size:11px; color:#8a7058; text-transform:uppercase; letter-spacing:.06em; }
+  .lv .prod b { display:block; font-family:Fraunces, serif; font-size:16px; margin:2px 0 8px; }
+  .lv .prod .row { display:flex; align-items:center; justify-content:space-between; }
+  .lv .prod .price { font-weight:700; font-size:16px; }
+  .lv .prod .add { width:34px; height:34px; border-radius:10px; background:var(--verde); color:var(--crema); display:flex; align-items:center; justify-content:center; font-size:20px; transform:scale(.9); transition:.2s; }
+  .lv .prod:hover .add { transform:scale(1); background:var(--verde2); }
+
+  /* banda pago */
+  .lv .pay { margin:6px 34px 34px; padding:20px 24px; border-radius:18px; background:var(--verde); color:var(--crema); display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .lv .pay b { font-family:Fraunces, serif; font-size:20px; }
+  .lv .pay .w { display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
+  .lv .pay .w span { background:#ffffff1f; border:1px solid #ffffff33; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600; }
+
+  /* aparición al cargar */
+  .lv .rise { animation:rise .7s cubic-bezier(.2,.8,.2,1) both; }
+  .lv .rise.d1{animation-delay:.08s} .lv .rise.d2{animation-delay:.16s} .lv .rise.d3{animation-delay:.24s} .lv .rise.d4{animation-delay:.32s}
+  @keyframes rise { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { .lv *, .lv *::before { animation:none !important; transition:none !important; } }
+
+  @media (max-width: 760px) {
+    .lv nav { padding:12px 16px; gap:14px; } .lv nav a { display:none; }
+    .lv .hero { grid-template-columns:1fr; padding:28px 18px; text-align:left; }
+    .lv .stage { height:240px; order:-1; } .lv .stage .plate { width:210px; height:210px; } .lv .cube3d { transform:scale(.85); }
+    .lv section { padding:22px 18px; }
+    .lv .cats { grid-template-columns:repeat(2,1fr); gap:10px; } .lv .cat { min-height:130px; } .lv .cat .ic { font-size:44px; right:-4px; bottom:-6px; } .lv .cat span:not(.ic) { display:block; padding-right:30px; }
+    .lv .prods { grid-template-columns:repeat(2,1fr); gap:10px; }
+    .lv .prod .img { height:120px; }
+    .lv .pay { margin:4px 18px 24px; } .lv .pay .w { margin-left:0; }
+  }
+</style>
+
+<div class="lv">
+  <nav>
+    <span class="logo"><span class="mini3"><i class="r"></i><i class="c"></i><i class="g"></i><i class="y"></i><i class="r"></i><i class="b"></i><i class="o"></i><i class="g"></i><i class="c"></i></span>Ludiq</span>
+    <a href="#">Catálogo</a><a href="#">Ajedrez</a><a href="#">Cubos</a><a href="#">Ofertas</a>
+    <span class="cart">🛒 2</span>
+  </nav>
+
+  <div class="hero">
+
+    <div class="sun"></div>
+    <div class="land"><svg viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="mnt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9a2bd"/><stop offset="1" stop-color="#cfc3c4"/></linearGradient>
+        <pattern id="win" width="14" height="10" patternUnits="userSpaceOnUse"><rect x="2" y="2" width="5" height="4" rx="1" fill="#b98f62" opacity=".55"/></pattern>
+      </defs>
+      <path fill="url(#mnt)" d="M0 260 L80 240 L160 245 L240 215 L320 225 L420 170 L480 150 L530 120 L560 128 L600 95 L640 108 L680 80 L720 92 L760 70 L800 88 L850 110 L900 140 L960 175 L1040 200 L1120 220 L1200 230 L1200 320 L0 320 Z"/>
+      <path fill="#fbf7ef" d="M470 152 L530 120 L560 128 L600 95 L640 108 L680 80 L720 92 L760 70 L800 88 L850 110 L885 130 L850 133 L820 121 L795 140 L770 121 L745 142 L715 118 L690 137 L660 120 L635 142 L610 122 L585 147 L560 135 L535 154 L505 148 Z"/>
+      <path fill="#e2cfae" d="M0 292 Q150 248 320 272 T650 262 T1000 268 T1200 250 L1200 320 L0 320 Z"/>
+      <path fill="url(#win)" d="M0 300 Q150 262 320 284 T650 276 T1000 280 T1200 266 L1200 320 L0 320 Z"/>
+      <path fill="#d6bf98" d="M0 312 Q300 290 600 304 T1200 296 L1200 320 L0 320 Z"/>
+      <path id="cable" d="M90 300 L1110 185" stroke="#6b5641" stroke-width="1.6" fill="none" opacity=".7"/>
+      <g><animateMotion dur="22s" repeatCount="indefinite" rotate="0"><mpath href="#cable"/></animateMotion>
+        <line x1="0" y1="0" x2="0" y2="8" stroke="#6b5641" stroke-width="1.5"/><rect x="-11" y="8" width="22" height="16" rx="4" fill="#c0392b"/><rect x="-7" y="11" width="14" height="6" rx="1.5" fill="#fbe9d0"/></g>
+      <g><animateMotion dur="22s" begin="-11s" repeatCount="indefinite" rotate="0"><mpath href="#cable"/></animateMotion>
+        <line x1="0" y1="0" x2="0" y2="8" stroke="#6b5641" stroke-width="1.5"/><rect x="-11" y="8" width="22" height="16" rx="4" fill="#d9b23a"/><rect x="-7" y="11" width="14" height="6" rx="1.5" fill="#fbe9d0"/></g>
+      <g><animateMotion dur="22s" begin="-5.5s" repeatCount="indefinite" rotate="0"><mpath href="#cable"/></animateMotion>
+        <line x1="0" y1="0" x2="0" y2="8" stroke="#6b5641" stroke-width="1.5"/><rect x="-11" y="8" width="22" height="16" rx="4" fill="#3f8a63"/><rect x="-7" y="11" width="14" height="6" rx="1.5" fill="#fbe9d0"/></g>
+    </svg></div>
+    <div>
+      <span class="eyebrow rise">♟ Juguetería de razonamiento · La Paz</span>
+      <h1 class="rise d1">El arte de <em>pensar</em>, en tu mesa.</h1>
+      <p class="rise d2">Ajedrez, cubos Rubik, rompecabezas y juegos de estrategia elegidos con cuidado. Para regalar, para aprender y para jugar en familia.</p>
+      <div class="btns rise d3"><span class="btn pri">Explorar catálogo <span class="ar">→</span></span><span class="btn sec">Ver ofertas</span></div>
+      <div class="trust rise d4"><span>🚌 Envíos a toda Bolivia</span><span>📱 Paga con Yape</span><span>🏪 Recojo en tienda</span></div>
+    </div>
+    <div class="stage">
+      <div class="plate"></div>
+      <span class="piece p1">♞</span><span class="piece p2">♛</span><span class="piece p3">🎲</span>
+      <div class="cube3d"><div class="f fr"><i class="g"></i><i class="c"></i><i class="y"></i><i class="b"></i><i class="r"></i><i class="r"></i><i class="o"></i><i class="r"></i><i class="g"></i></div><div class="f bk"><i class="o"></i><i class="r"></i><i class="o"></i><i class="c"></i><i class="r"></i><i class="r"></i><i class="y"></i><i class="y"></i><i class="r"></i></div><div class="f rt"><i class="c"></i><i class="r"></i><i class="o"></i><i class="y"></i><i class="r"></i><i class="o"></i><i class="r"></i><i class="c"></i><i class="b"></i></div><div class="f lf"><i class="b"></i><i class="o"></i><i class="r"></i><i class="o"></i><i class="o"></i><i class="y"></i><i class="r"></i><i class="c"></i><i class="r"></i></div><div class="f tp"><i class="o"></i><i class="c"></i><i class="g"></i><i class="y"></i><i class="c"></i><i class="o"></i><i class="r"></i><i class="o"></i><i class="g"></i></div><div class="f bt"><i class="o"></i><i class="b"></i><i class="c"></i><i class="r"></i><i class="o"></i><i class="o"></i><i class="b"></i><i class="c"></i><i class="g"></i></div></div>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head"><h2>Explora por tipo</h2><a href="#">Ver todo →</a></div>
+    <div class="cats">
+      <div class="cat"><b>Cubos</b><span>Rubik, speed, megaminx</span><span class="ic">🧊</span></div>
+      <div class="cat"><b>Ajedrez</b><span>Madera, magnético, relojes</span><span class="ic">♟️</span></div>
+      <div class="cat"><b>Juegos de mesa</b><span>Estrategia y familia</span><span class="ic">🎲</span></div>
+      <div class="cat"><b>Rompecabezas</b><span>Lógica y destreza</span><span class="ic">🧩</span></div>
+    </div>
+  </section>
+
+  <section style="padding-top:6px">
+    <div class="sec-head"><h2>Los más pedidos</h2><a href="#">Ver catálogo →</a></div>
+    <div class="prods">
+      <div class="prod"><div class="img"><span class="badge">-15%</span><span class="fav">♡</span><div class="art mc"><i class="r"></i><i class="c"></i><i class="g"></i><i class="y"></i><i class="b"></i><i class="r"></i><i class="o"></i><i class="g"></i><i class="c"></i></div></div>
+        <div class="meta"><span class="tag">Cubos · 8+ años</span><b>Cubo 3x3 Speed</b><div class="row"><span class="price">Bs 60</span><span class="add">+</span></div></div></div>
+      <div class="prod"><div class="img"><span class="fav">♡</span><div class="art brd"></div></div>
+        <div class="meta"><span class="tag">Ajedrez · 6+ años</span><b>Ajedrez de madera</b><div class="row"><span class="price">Bs 120</span><span class="add">+</span></div></div></div>
+      <div class="prod"><div class="img"><span class="badge" style="background:#1f4d3a">Nuevo</span><span class="fav">♡</span><div class="art emo">🎲</div></div>
+        <div class="meta"><span class="tag">Juegos de mesa · 10+</span><b>Catán</b><div class="row"><span class="price">Bs 450</span><span class="add">+</span></div></div></div>
+      <div class="prod"><div class="img"><span class="fav">♡</span><div class="art emo">🧩</div></div>
+        <div class="meta"><span class="tag">Rompecabezas · 12+</span><b>Laberinto 3D</b><div class="row"><span class="price">Bs 90</span><span class="add">+</span></div></div></div>
+    </div>
+  </section>
+
+  <div class="pay">
+    <b>Paga fácil con QR</b><span style="opacity:.85;font-size:14px">Escanea, paga y sube tu captura. Nosotros confirmamos.</span>
+    <div class="w"><span>Yape</span><span>Altoke</span><span>Yasta</span></div>
+  </div>
+</div>
