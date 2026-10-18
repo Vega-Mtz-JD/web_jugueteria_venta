@@ -3,42 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { ProductCardData } from "@/features/catalog/types";
 import { formatBs } from "@/lib/money";
-import { getCartProducts } from "./actions";
-import { cartReducer, MAX_PER_LINE } from "./cart-store";
+import { MAX_PER_LINE } from "./cart-store";
 import { QuantityStepper } from "./QuantityStepper";
-import { useCart } from "./useCart";
+import { useCartProducts } from "./useCartProducts";
 
 export function CartView() {
-  const { lines, setQuantity, remove, reconcile } = useCart();
-  const [products, setProducts] = useState<Record<string, ProductCardData> | null>(null);
-  const [adjusted, setAdjusted] = useState<string[]>([]);
-  const ids = lines.map((l) => l.productId).sort().join(",");
-
-  // Al abrir el carrito (o cambiar qué productos tiene) se traen precio y stock al día.
-  useEffect(() => {
-    let cancelled = false;
-    const current = lines;
-    getCartProducts(current.map((l) => l.productId)).then((fresh) => {
-      if (cancelled) return;
-      const byId = Object.fromEntries(fresh.map((p) => [p.id, p]));
-      const available = Object.fromEntries(fresh.map((p) => [p.id, p.stock]));
-      const next = cartReducer(current, { type: "reconcile", available });
-      const changed = current.filter((l) => next.find((n) => n.productId === l.productId)?.quantity !== l.quantity);
-      if (changed.length > 0) {
-        setAdjusted(changed.map((l) => byId[l.productId]?.name ?? "un producto que ya no está disponible"));
-        reconcile(available);
-      }
-      setProducts(byId);
-    });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando cambia el conjunto de productos
-  }, [ids]);
+  const { lines, setQuantity, remove, products, visible, subtotal, adjusted } = useCartProducts();
 
   if (lines.length === 0 && adjusted.length === 0) {
     return (
@@ -51,9 +23,6 @@ export function CartView() {
       </div>
     );
   }
-
-  const visible = products ? lines.filter((l) => products[l.productId]) : [];
-  const subtotal = visible.reduce((sum, l) => sum + products![l.productId].priceCents * l.quantity, 0);
 
   return (
     <div className="grid gap-8 md:grid-cols-[1fr_20rem]">

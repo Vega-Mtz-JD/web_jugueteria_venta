@@ -65,3 +65,19 @@ export async function latestEmailHtml(to: string): Promise<string> {
   }
   throw new Error(`No llegó ningún correo a ${to}`);
 }
+
+export async function productId(slug: string): Promise<string> {
+  const { data, error } = await adminClient().from("products").select("id").eq("slug", slug).single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function ordersOf(customerId: string) {
+  const { data, error } = await adminClient()
+    .from("orders")
+    .select("id, number, status, delivery_method, delivery_fee_cents, total_cents, meeting_point_id, invoice_requested")
+    .eq("customer_id", customerId)
+    .order("created_at");
+  if (error) throw error;
+  return data;
+}
