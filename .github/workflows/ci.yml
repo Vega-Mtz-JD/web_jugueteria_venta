@@ -37,7 +37,7 @@ jobs:
           npx supabase status -o env \
             --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
             --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
-            | grep -E '^NEXT_PUBLIC_' >> "$GITHUB_ENV"
+            | grep -E '^NEXT_PUBLIC_' | tr -d '"' >> "$GITHUB_ENV"
           echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000" >> "$GITHUB_ENV"
       - run: npm run test:int
       # El build pre-renderiza páginas con datos del catálogo: necesita Supabase.
