@@ -251,14 +251,31 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "delete_sample_products":
+            "cancel_order_by_customer":
+{ Args: { "p_order_id": string }; Returns: undefined
+                           },
+"create_order":
+{ Args: { "p_delivery": Json,"p_invoice": Json,"p_items": Json,"p_request_id": string }; Returns: {
+              "order_id": string,"order_number": number
+            }[]
+                           },
+"delete_sample_products":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"expire_orders":
+{ Args: { "p_now"?: string }; Returns: number
                            },
 "immutable_unaccent":
 { Args: { "": string }; Returns: string
                            },
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"restock_order":
+{ Args: { "p_order_id": string }; Returns: undefined
+                           },
+"submit_payment_proof":
+{ Args: { "p_order_id": string,"p_path": string }; Returns: undefined
                            }
           }
           Enums: {
