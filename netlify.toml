@@ -1,0 +1,6 @@
+# Netlify detecta Next.js y usa su adaptador oficial (OpenNext); no hace falta un plugin manual.
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
