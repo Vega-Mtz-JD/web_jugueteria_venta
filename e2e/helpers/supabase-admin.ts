@@ -81,3 +81,36 @@ export async function ordersOf(customerId: string) {
   if (error) throw error;
   return data;
 }
+
+/** Pedido de prueba (recojo, 1 unidad) creado directamente con la clave de servicio. */
+export async function createOrderFor(customerId: string, slug = "uno"): Promise<{ id: string; number: number; totalCents: number }> {
+  const admin = adminClient();
+  const { data: product, error: pe } = await admin.from("products").select("id, name, price_cents").eq("slug", slug).single();
+  if (pe) throw pe;
+  const { data: order, error } = await admin
+    .from("orders")
+    .insert({
+      request_id: crypto.randomUUID(),
+      customer_id: customerId,
+      delivery_method: "recojo",
+      recipient_name: "Ana Prueba",
+      phone: "71234567",
+      subtotal_cents: product.price_cents,
+      delivery_fee_cents: 0,
+      total_cents: product.price_cents,
+    })
+    .select("id, number, total_cents")
+    .single();
+  if (error) throw error;
+  const { error: ie } = await admin
+    .from("order_items")
+    .insert({ order_id: order.id, product_id: product.id, product_name: product.name, unit_price_cents: product.price_cents, quantity: 1 });
+  if (ie) throw ie;
+  return { id: order.id, number: order.number, totalCents: order.total_cents };
+}
+
+export async function orderStatus(orderId: string): Promise<string> {
+  const { data, error } = await adminClient().from("orders").select("status").eq("id", orderId).single();
+  if (error) throw error;
+  return data.status;
+}
