@@ -1,0 +1,29 @@
+.wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.piece {
+  position: absolute;
+  line-height: 1;
+  color: var(--color-tinta);
+  filter: drop-shadow(0 10px 8px rgb(43 33 24 / 0.25));
+  animation: float 5s ease-in-out infinite;
+}
+
+.knight { left: 6%; top: 16%; font-size: 46px; }
+.queen {
+  right: 4%;
+  bottom: 14%;
+  font-size: 40px;
+  color: var(--color-cubo-crema);
+  text-shadow: 0 0 1px var(--color-tinta), 0 0 1px var(--color-tinta);
+  animation-delay: -2.5s;
+}
+.die { right: 12%; top: 4%; font-size: 30px; animation-delay: -1.2s; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50% { transform: translateY(-14px) rotate(6deg); }
+}

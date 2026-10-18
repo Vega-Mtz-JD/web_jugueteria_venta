@@ -6,7 +6,10 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   turbopack: {
     rules: {
+      // Tailwind solo procesa las hojas globales: con `as: "*.css"` los CSS modules
+      // (*.module.css) perderían sus clases locales.
       "*.css": {
+        condition: { not: { path: /\.module\.css$/ } },
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },
