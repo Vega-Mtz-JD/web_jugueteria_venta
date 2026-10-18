@@ -1,0 +1,134 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* ---------------------------------------------------------------------------
+   Ludoteca cálida — tokens del sistema de diseño (spec 5.8)
+   Paleta: crema / madera / verde tablero, con los colores del cubo como acento.
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-crema: #f6efe3;
+  --color-crema-2: #efe4d2;
+  --color-papel: #fffaf1;
+  --color-tinta: #2b2118;
+  --color-tinta-suave: #5a4430;
+  --color-madera: #7a5230;
+  --color-verde: #1f4d3a;
+  --color-verde-2: #2c6a50;
+  --color-mostaza: #c9a227;
+  --color-rojo: #c0392b;
+
+  --color-cubo-rojo: #c0392b;
+  --color-cubo-crema: #f3e6c8;
+  --color-cubo-verde: #3f8a63;
+  --color-cubo-mostaza: #d9b23a;
+  --color-cubo-naranja: #d9822b;
+  --color-cubo-azul: #2f5d8a;
+}
+
+/* Variables que usan los componentes de shadcn, mapeadas a la paleta. */
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-heading: var(--font-serif);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: #f6efe3;
+  --foreground: #2b2118;
+  --card: #fffaf1;
+  --card-foreground: #2b2118;
+  --popover: #fffaf1;
+  --popover-foreground: #2b2118;
+  --primary: #1f4d3a;
+  --primary-foreground: #f6efe3;
+  --secondary: #efe4d2;
+  --secondary-foreground: #2b2118;
+  --muted: #efe4d2;
+  --muted-foreground: #5a4430;
+  --accent: #e9dcc6;
+  --accent-foreground: #2b2118;
+  --destructive: #c0392b;
+  --border: #e3d5bf;
+  --input: #d9c9b0;
+  --ring: #2c6a50;
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    /* La cabecera es fija: al saltar a un ancla o enfocar, que no tape el contenido. */
+    scroll-padding-top: 5rem;
+  }
+  a,
+  button,
+  input,
+  select,
+  label,
+  summary {
+    touch-action: manipulation;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+    text-wrap: balance;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Botón "Pausar animaciones" de la portada. */
+:root[data-motion="paused"] *,
+:root[data-motion="paused"] *::before,
+:root[data-motion="paused"] *::after {
+  animation-play-state: paused !important;
+}
+
+/* Quien pidió menos movimiento en su sistema no ve animaciones decorativas. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
