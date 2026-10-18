@@ -4,7 +4,7 @@ Estas skills de Claude Code se copiaron sin cambios desde sus repositorios origi
 
 | Skill | Origen | Licencia |
 |---|---|---|
-| brainstorming, writing-plans, executing-plans, verification-before-completion | [obra/superpowers](https://github.com/obra/superpowers) | MIT — `superpowers-MIT.txt` |
+| brainstorming, writing-plans, executing-plans, verification-before-completion, subagent-driven-development, test-driven-development, requesting-code-review, systematic-debugging, using-git-worktrees, finishing-a-development-branch | [obra/superpowers](https://github.com/obra/superpowers) | MIT — `superpowers-MIT.txt` |
 | find-skills | [vercel-labs/skills](https://github.com/vercel-labs/skills) | MIT — `vercel-labs-skills-MIT.txt` |
 | frontend-design, theme-factory, webapp-testing | [anthropics/skills](https://github.com/anthropics/skills) | Apache 2.0 — `LICENSE.txt` dentro de cada skill |
 | web-design-guidelines, react-best-practices, composition-patterns | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | MIT (declarada en cada `SKILL.md`) |
