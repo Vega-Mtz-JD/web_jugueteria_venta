@@ -34,6 +34,11 @@ describe("listProducts", () => {
     }
   });
 
+  it("busca varias palabras aunque no estén juntas", async () => {
+    const products = await listProducts({ q: "ajedrez madera", orden: "destacados" });
+    expect(products.map((p) => p.slug)).toEqual(["ajedrez-madera-plegable"]);
+  });
+
   it("búsquedas con símbolos no fallan", async () => {
     await expect(listProducts({ q: "50%", orden: "destacados" })).resolves.toEqual([]);
     await expect(listProducts({ q: "o'neil", orden: "destacados" })).resolves.toEqual([]);

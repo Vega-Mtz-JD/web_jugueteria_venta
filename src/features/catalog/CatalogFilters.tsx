@@ -35,14 +35,37 @@ function toNumber(value: string): number | undefined {
   return value === "" ? undefined : Number(value);
 }
 
+/**
+ * Estado local de un campo de texto ligado a la URL. Lo que la persona escribe nunca se
+ * pisa con una URL que llega tarde; solo se reinicia cuando el filtro se limpia desde
+ * fuera (por ejemplo, "Limpiar filtros").
+ */
+function useUrlField(urlValue: string) {
+  const [value, setValue] = useState(urlValue);
+  const [applied, setApplied] = useState(urlValue);
+  const [previousUrl, setPreviousUrl] = useState(urlValue);
+  // Solo cuando la URL *cambia* a vacía (no mientras aún no llega la nueva).
+  if (urlValue !== previousUrl) {
+    setPreviousUrl(urlValue);
+    if (urlValue === "") {
+      setApplied("");
+      setValue("");
+    }
+  }
+  return { value, setValue, applied, markApplied: setApplied };
+}
+
 export function CatalogSearch({ current }: { current: Filters }) {
   const { apply, pending } = useApplyFilters(current);
-  const [value, setValue] = useState(current.q ?? "");
+  const { value, setValue, applied, markApplied } = useUrlField(current.q ?? "");
 
   useEffect(() => {
     const term = value.trim();
-    if (term === (current.q ?? "")) return;
-    const timer = setTimeout(() => apply({ q: term || undefined }), 300);
+    if (term === applied) return;
+    const timer = setTimeout(() => {
+      markApplied(term);
+      apply({ q: term || undefined });
+    }, 300);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo reaccionar a lo que escribe la persona
   }, [value]);
@@ -62,34 +85,47 @@ export function CatalogSearch({ current }: { current: Filters }) {
   );
 }
 
+function PriceInput({
+  label,
+  placeholder,
+  urlValue,
+  onApply,
+}: {
+  label: string;
+  placeholder: string;
+  urlValue: number | undefined;
+  onApply: (value: number | undefined) => void;
+}) {
+  const { value, setValue, applied, markApplied } = useUrlField(urlValue === undefined ? "" : String(urlValue));
+  const commit = () => {
+    if (value === applied) return;
+    markApplied(value);
+    onApply(toNumber(value));
+  };
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={0}
+      aria-label={label}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === "Enter" && commit()}
+      className={fieldClass}
+    />
+  );
+}
+
 function FilterControls({ current, className }: { current: Filters; className?: string }) {
   const { apply } = useApplyFilters(current);
   return (
     <div className={cn("grid gap-4", className)}>
       <fieldset className="grid grid-cols-2 gap-2">
         <legend className="mb-1.5 text-sm font-medium">Precio (Bs)</legend>
-        <input
-          type="number"
-          inputMode="numeric"
-          min={0}
-          aria-label="Precio mínimo"
-          placeholder="Desde"
-          defaultValue={current.precioMin}
-          onBlur={(e) => apply({ precioMin: toNumber(e.target.value) })}
-          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          className={fieldClass}
-        />
-        <input
-          type="number"
-          inputMode="numeric"
-          min={0}
-          aria-label="Precio máximo"
-          placeholder="Hasta"
-          defaultValue={current.precioMax}
-          onBlur={(e) => apply({ precioMax: toNumber(e.target.value) })}
-          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          className={fieldClass}
-        />
+        <PriceInput label="Precio mínimo" placeholder="Desde" urlValue={current.precioMin} onApply={(v) => apply({ precioMin: v })} />
+        <PriceInput label="Precio máximo" placeholder="Hasta" urlValue={current.precioMax} onApply={(v) => apply({ precioMax: v })} />
       </fieldset>
       <label className="grid gap-1.5 text-sm font-medium">
         ¿Qué edad tiene quien juega?
@@ -148,7 +184,7 @@ function FilterControls({ current, className }: { current: Filters; className?: 
 export function CatalogFilters({ current }: { current: Filters }) {
   return (
     <>
-      <FilterControls key={catalogHref(current)} current={current} className="hidden md:grid" />
+      <FilterControls current={current} className="hidden md:grid" />
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="outline" className="md:hidden">
@@ -158,7 +194,7 @@ export function CatalogFilters({ current }: { current: Filters }) {
         </SheetTrigger>
         <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-3xl bg-crema px-5 pb-8 pt-6">
           <SheetTitle className="font-serif text-xl">Filtros</SheetTitle>
-          <FilterControls key={catalogHref(current)} current={current} />
+          <FilterControls current={current} />
         </SheetContent>
       </Sheet>
     </>

@@ -1,14 +1,15 @@
 "use client";
 
-import { useReducedMotion } from "motion/react";
+import { useEffect, useRef } from "react";
 
 // Cabinas del teleférico: colores de las líneas Roja, Amarilla y Verde.
 const CABINS = [
-  { color: "var(--color-cubo-rojo)", begin: "0s", still: 0.18 },
-  { color: "var(--color-cubo-mostaza)", begin: "-11s", still: 0.66 },
-  { color: "var(--color-cubo-verde)", begin: "-5.5s", still: 0.42 },
+  { color: "var(--color-cubo-rojo)", begin: "0s" },
+  { color: "var(--color-cubo-mostaza)", begin: "-11s" },
+  { color: "var(--color-cubo-verde)", begin: "-5.5s" },
 ];
-const CABLE = { x1: 90, y1: 300, x2: 1110, y2: 185 };
+// Momento de la animación en que quedan quietas las cabinas con movimiento reducido.
+const STILL_TIME_S = 4;
 
 function Cabin({ color }: { color: string }) {
   return (
@@ -25,10 +26,27 @@ function Cabin({ color }: { color: string }) {
  * Ilustración provisional: se reemplazará por fotos reales (spec 5.8).
  */
 export function IllimaniLandscape() {
-  // Las animaciones SVG (animateMotion) no obedecen a la regla CSS de movimiento reducido.
-  const reduce = useReducedMotion();
+  // Las animaciones SVG (animateMotion) no obedecen a la regla CSS de movimiento reducido:
+  // se pausan desde aquí. El marcado es el mismo en servidor y cliente (sin error de hidratación).
+  const svg = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => {
+      const el = svg.current;
+      if (!el) return;
+      if (media.matches) {
+        el.setCurrentTime(STILL_TIME_S);
+        el.pauseAnimations();
+      } else {
+        el.unpauseAnimations();
+      }
+    };
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
   return (
-    <svg viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice" aria-hidden className="size-full">
+    <svg ref={svg} viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice" aria-hidden className="size-full">
       <defs>
         <linearGradient id="illimani-roca" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#a9a2bd" />
@@ -51,29 +69,20 @@ export function IllimaniLandscape() {
       <path fill="#d6bf98" d="M0 312 Q300 290 600 304 T1200 296 L1200 320 L0 320 Z" />
       <path
         id="illimani-cable"
-        d={`M${CABLE.x1} ${CABLE.y1} L${CABLE.x2} ${CABLE.y2}`}
+        d="M90 300 L1110 185"
         stroke="#6b5641"
         strokeWidth="1.6"
         fill="none"
         opacity=".7"
       />
-      {CABINS.map((cabin) =>
-        reduce ? (
-          <g
-            key={cabin.color}
-            transform={`translate(${CABLE.x1 + (CABLE.x2 - CABLE.x1) * cabin.still} ${CABLE.y1 + (CABLE.y2 - CABLE.y1) * cabin.still})`}
-          >
-            <Cabin color={cabin.color} />
-          </g>
-        ) : (
-          <g key={cabin.color}>
-            <animateMotion dur="22s" begin={cabin.begin} repeatCount="indefinite">
-              <mpath href="#illimani-cable" />
-            </animateMotion>
-            <Cabin color={cabin.color} />
-          </g>
-        ),
-      )}
+      {CABINS.map((cabin) => (
+        <g key={cabin.color}>
+          <animateMotion dur="22s" begin={cabin.begin} repeatCount="indefinite">
+            <mpath href="#illimani-cable" />
+          </animateMotion>
+          <Cabin color={cabin.color} />
+        </g>
+      ))}
     </svg>
   );
 }

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Cube3D } from "@/components/brand/Cube3D";
 import { FloatingPieces } from "@/components/brand/FloatingPieces";
 import { IllimaniLandscape } from "@/components/brand/IllimaniLandscape";
-import { Reveal, RevealItem } from "@/components/brand/Reveal";
+import { RevealItem } from "@/components/brand/Reveal";
 import { Button } from "@/components/ui/button";
 import { CategoryGrid } from "@/features/catalog/CategoryGrid";
 import { listCategories, listProducts } from "@/features/catalog/cached";
@@ -41,13 +41,13 @@ export default async function Home() {
         </div>
 
         <div className="relative mx-auto grid max-w-6xl items-center gap-6 px-4 pb-44 pt-8 sm:px-6 md:grid-cols-[1.15fr_1fr] md:pb-32 md:pt-14">
-          <Reveal className="order-2 md:order-1">
-            <RevealItem>
+          <div className="order-2 md:order-1">
+            <RevealItem step={0}>
               <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#e4ecdf] px-3 py-1 text-sm font-semibold text-verde">
                 <span aria-hidden>♟</span> Juegos de mesa en La Paz
               </p>
             </RevealItem>
-            <RevealItem>
+            <div>
               <h1 className="text-[clamp(2.25rem,6vw,3.5rem)] font-extrabold leading-[1.02] tracking-[-0.02em]">
                 El arte de{" "}
                 <em className="relative z-0 text-verde after:absolute after:inset-x-0 after:bottom-1 after:-z-10 after:h-2.5 after:rounded after:bg-mostaza/35">
@@ -55,14 +55,14 @@ export default async function Home() {
                 </em>
                 , en tu mesa.
               </h1>
-            </RevealItem>
-            <RevealItem>
+            </div>
+            <RevealItem step={1}>
               <p className="mt-4 max-w-md text-[1.05rem] leading-relaxed text-tinta-suave">
                 Ajedrez, cubos, juegos de cartas, de casino y de destreza. Elegidos para regalar, aprender y jugar en
                 familia.
               </p>
             </RevealItem>
-            <RevealItem className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild size="lg">
                 <Link href="/catalogo">
                   Explorar catálogo
@@ -72,8 +72,8 @@ export default async function Home() {
               <Button asChild size="lg" variant="outline">
                 <Link href="/catalogo?ofertas=1">Ver ofertas</Link>
               </Button>
-            </RevealItem>
-            <RevealItem>
+            </div>
+            <RevealItem step={2}>
               <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-tinta-suave">
                 {TRUST.map(({ icon: Icon, text }) => (
                   <li key={text} className="inline-flex items-center gap-1.5">
@@ -83,7 +83,7 @@ export default async function Home() {
                 ))}
               </ul>
             </RevealItem>
-          </Reveal>
+          </div>
 
           <div className="relative order-1 flex h-60 items-center justify-center md:order-2 md:h-80">
             <div

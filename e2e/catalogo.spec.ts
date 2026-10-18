@@ -25,10 +25,10 @@ test.describe("catálogo", () => {
     await expect(cards(page).first()).toContainText("Catán");
   });
 
-  test("parámetros inválidos no rompen la página", async ({ page }) => {
+  test("parámetros inválidos se ignoran y se muestra el catálogo", async ({ page }) => {
     const res = await page.goto("/catalogo?precio_min=abc&jugadores=-3&categoria=no-existe");
     expect(res?.status()).toBe(200);
-    await expect(page.getByText("No encontramos juegos con esos filtros")).toBeVisible();
+    await expect(page.getByText("17 juegos")).toBeVisible();
   });
 
   test("el estado vacío permite limpiar los filtros", async ({ page }) => {
@@ -36,6 +36,7 @@ test.describe("catálogo", () => {
     await expect(page.getByText("No encontramos juegos con esos filtros")).toBeVisible();
     await page.getByRole("main").getByRole("link", { name: "Limpiar filtros" }).first().click();
     await expect(page.getByText("17 juegos")).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Buscar juegos" })).toHaveValue("");
   });
 
   test("solo ofertas", async ({ page }) => {

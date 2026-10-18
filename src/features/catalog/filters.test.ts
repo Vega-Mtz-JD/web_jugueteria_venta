@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { catalogHref, parseCatalogFilters } from "./filters";
+import { catalogHref, parseCatalogFilters, settingsFromRow } from "./filters";
 
 describe("parseCatalogFilters", () => {
   it("sin parámetros usa el orden por defecto", () => {
@@ -59,5 +59,17 @@ describe("catalogHref", () => {
     const f = { categoria: "casino", jugadores: 2, orden: "nuevos" as const };
     const sp = Object.fromEntries(new URL(catalogHref(f), "http://x").searchParams);
     expect(parseCatalogFilters(sp)).toEqual(f);
+  });
+});
+
+describe("settingsFromRow", () => {
+  it("sin fila de ajustes usa valores por defecto en vez de fallar", () => {
+    expect(settingsFromRow(null)).toEqual({
+      storeName: "Ludiq",
+      tagline: null,
+      whatsappPhone: null,
+      address: null,
+      pickupHours: null,
+    });
   });
 });

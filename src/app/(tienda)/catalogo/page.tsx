@@ -24,9 +24,11 @@ function hasActiveFilters(f: Filters): boolean {
 }
 
 async function CatalogContent({ searchParams }: { searchParams: PageProps<"/catalogo">["searchParams"] }) {
-  const filters = parseCatalogFilters(await searchParams);
-  const [categories, products] = await Promise.all([listCategories(), listProducts(filters)]);
-  const category = categories.find((c) => c.slug === filters.categoria);
+  const [parsed, categories] = await Promise.all([searchParams.then(parseCatalogFilters), listCategories()]);
+  // Una categoría que ya no existe (enlace viejo) se ignora y se muestra todo el catálogo.
+  const category = categories.find((c) => c.slug === parsed.categoria);
+  const filters: Filters = category ? parsed : { ...parsed, categoria: undefined };
+  const products = await listProducts(filters);
   const chips = [{ slug: undefined, name: "Todos" }, ...categories];
 
   return (
@@ -39,7 +41,7 @@ async function CatalogContent({ searchParams }: { searchParams: PageProps<"/cata
       </div>
 
       <div className="mt-5">
-        <CatalogSearch key={filters.q ?? ""} current={filters} />
+        <CatalogSearch current={filters} />
       </div>
 
       <nav aria-label="Categorías" className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">

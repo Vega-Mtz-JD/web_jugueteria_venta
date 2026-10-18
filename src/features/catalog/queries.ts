@@ -3,6 +3,7 @@ import { bsToCents } from "@/lib/money";
 import { escapeLike, normalizeSearch } from "@/lib/search";
 import { supabaseEnv } from "@/lib/supabase/env";
 import { createPublicSupabase } from "@/lib/supabase/public";
+import { settingsFromRow } from "./filters";
 import type { CatalogFilters, Category, ProductCardData, ProductDetail, StoreSettings } from "./types";
 
 const PRODUCT_COLUMNS =
@@ -59,8 +60,10 @@ export async function listProducts(f: CatalogFilters, limit?: number): Promise<P
 
   if (f.categoria) query = query.eq("categories.slug", f.categoria);
   if (f.q) {
-    const term = normalizeSearch(f.q);
-    if (term) query = query.ilike("search_text", `%${escapeLike(term)}%`);
+    // Cada palabra debe aparecer, en cualquier orden: "ajedrez madera" encuentra "Ajedrez de madera".
+    for (const word of normalizeSearch(f.q).split(" ").filter(Boolean)) {
+      query = query.ilike("search_text", `%${escapeLike(word)}%`);
+    }
   }
   if (f.precioMin !== undefined) query = query.gte("price_cents", bsToCents(f.precioMin));
   if (f.precioMax !== undefined) query = query.lte("price_cents", bsToCents(f.precioMax));
@@ -123,13 +126,7 @@ export async function getStoreSettings(): Promise<StoreSettings> {
   const { data, error } = await createPublicSupabase()
     .from("store_settings")
     .select("store_name, tagline, whatsapp_phone, address, pickup_hours")
-    .single();
+    .maybeSingle();
   if (error) throw error;
-  return {
-    storeName: data.store_name,
-    tagline: data.tagline,
-    whatsappPhone: data.whatsapp_phone,
-    address: data.address,
-    pickupHours: data.pickup_hours,
-  };
+  return settingsFromRow(data);
 }

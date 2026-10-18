@@ -24,6 +24,7 @@ export function SiteHeader({ storeName }: { storeName: string }) {
         </nav>
         <Link
           href="/carrito"
+          prefetch={false}
           aria-label="Ver carrito"
           className="inline-flex size-11 items-center justify-center rounded-full bg-verde text-crema transition-colors hover:bg-verde-2"
         >

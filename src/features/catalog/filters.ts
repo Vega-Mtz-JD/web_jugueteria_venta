@@ -1,4 +1,4 @@
-import type { CatalogFilters, CatalogSort } from "./types";
+import type { CatalogFilters, CatalogSort, StoreSettings } from "./types";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -59,4 +59,23 @@ export function catalogHref(f: CatalogFilters): string {
   if (f.orden !== "destacados") sp.set("orden", f.orden);
   const qs = sp.toString();
   return qs ? `/catalogo?${qs}` : "/catalogo";
+}
+
+type StoreSettingsRow = {
+  store_name: string;
+  tagline: string | null;
+  whatsapp_phone: string | null;
+  address: string | null;
+  pickup_hours: string | null;
+};
+
+/** Ajustes de la tienda; si aún no existe la fila, valores por defecto para que la web no se caiga. */
+export function settingsFromRow(row: StoreSettingsRow | null): StoreSettings {
+  return {
+    storeName: row?.store_name ?? "Ludiq",
+    tagline: row?.tagline ?? null,
+    whatsappPhone: row?.whatsapp_phone ?? null,
+    address: row?.address ?? null,
+    pickupHours: row?.pickup_hours ?? null,
+  };
 }
