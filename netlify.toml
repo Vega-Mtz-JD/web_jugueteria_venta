@@ -1,6 +1,12 @@
-# Netlify detecta Next.js y usa su adaptador oficial (OpenNext); no hace falta un plugin manual.
+# Next.js en Netlify: el plugin oficial aplica el adaptador (OpenNext) que convierte
+# las rutas de Next en funciones y caché. Se declara explícitamente para que la
+# configuración del panel no lo desactive.
 [build]
   command = "npm run build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
