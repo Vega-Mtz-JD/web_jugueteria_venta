@@ -12,6 +12,13 @@ test.describe("ficha de producto", () => {
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Catán/);
   });
 
+  test("en celular la ficha no tiene scroll horizontal", async ({ page }) => {
+    await page.goto("/producto/catan");
+    await expect(page.getByRole("button", { name: "Agregar al carrito" })).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
   test("un producto agotado no se puede agregar", async ({ page }) => {
     await page.goto("/producto/exploding-kittens");
     await expect(page.getByRole("button", { name: "Agotado" })).toBeDisabled();

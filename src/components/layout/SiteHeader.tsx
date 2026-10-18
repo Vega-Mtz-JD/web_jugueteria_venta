@@ -1,7 +1,7 @@
-import { ShoppingBagIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { HeaderAccount, LoginLink } from "@/features/auth/HeaderAccount";
+import { CartBadge } from "@/features/cart/CartBadge";
 import { Logo } from "@/components/brand/Logo";
 import { MobileMenu } from "./MobileMenu";
 import { NAV_LINKS } from "./nav-links";
@@ -27,14 +27,7 @@ export function SiteHeader({ storeName }: { storeName: string }) {
         <Suspense fallback={<LoginLink />}>
           <HeaderAccount />
         </Suspense>
-        <Link
-          href="/carrito"
-          prefetch={false}
-          aria-label="Ver carrito"
-          className="inline-flex size-11 items-center justify-center rounded-full bg-verde text-crema transition-colors hover:bg-verde-2"
-        >
-          <ShoppingBagIcon className="size-5" />
-        </Link>
+        <CartBadge />
         <MobileMenu storeName={storeName} />
       </div>
     </header>

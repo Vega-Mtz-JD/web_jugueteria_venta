@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { MessageCircleIcon, ShoppingBagIcon } from "lucide-react";
+import { MessageCircleIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getProductBySlug, getStoreSettings, listProducts } from "@/features/catalog/cached";
+import { AddToCartButton } from "@/features/cart/AddToCartButton";
 import { ProductGallery } from "@/features/catalog/ProductGallery";
 import { ProductGrid } from "@/features/catalog/ProductGrid";
 import { ageLabel, playersLabel } from "@/lib/labels";
@@ -90,13 +91,13 @@ async function ProductContent({ params }: { params: PageProps<"/producto/[slug]"
         </Link>
       </nav>
 
-      <div className="grid gap-8 md:grid-cols-2 md:gap-12">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
         <ProductGallery
           images={product.images.length > 0 ? product.images : [{ url: product.imageUrl, alt: product.name }]}
           soldOut={soldOut}
         />
 
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap gap-1.5">
             {product.isNew && <Badge variant="nuevo">Nuevo</Badge>}
             {product.compareAtCents !== null && !soldOut && <Badge variant="oferta">Oferta</Badge>}
@@ -123,12 +124,8 @@ async function ProductContent({ params }: { params: PageProps<"/producto/[slug]"
 
           {product.description && <p className="mt-4 max-w-prose leading-relaxed text-tinta-suave">{product.description}</p>}
 
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            {/* El carrito llega en el plan 2. */}
-            <Button size="lg" disabled className="sm:flex-1">
-              <ShoppingBagIcon data-icon="inline-start" />
-              {soldOut ? "Agotado" : "Muy pronto"}
-            </Button>
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-start">
+            <AddToCartButton productId={product.id} stock={product.stock} />
             {settings.whatsappPhone && (
               <Button asChild size="lg" variant="outline" className="sm:flex-1">
                 <a
@@ -142,11 +139,6 @@ async function ProductContent({ params }: { params: PageProps<"/producto/[slug]"
               </Button>
             )}
           </div>
-          {!soldOut && (
-            <p className="mt-3 text-sm text-muted-foreground">
-              Pronto podrás comprarlo aquí mismo. Mientras tanto, escríbenos y te lo separamos.
-            </p>
-          )}
         </div>
       </div>
 

@@ -25,13 +25,13 @@ export type ProductCardData = {
   minPlayers: number | null;
   maxPlayers: number | null;
   inStock: boolean;
+  stock: number;
   isNew: boolean;
   imageUrl: string;
 };
 
 export type ProductDetail = ProductCardData & {
   description: string | null;
-  stock: number;
   images: { url: string; alt: string }[];
   categorySlug: string;
 };

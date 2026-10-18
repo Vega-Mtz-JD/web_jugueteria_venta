@@ -41,6 +41,7 @@ function toCard(row: ProductRow, supabaseUrl: string): ProductCardData {
     minPlayers: row.min_players,
     maxPlayers: row.max_players,
     inStock: row.stock > 0,
+    stock: row.stock,
     isNew: row.is_new,
     imageUrl: productImageUrl(sortedImages(row)[0]?.path ?? null, supabaseUrl),
   };
@@ -101,6 +102,19 @@ export async function listProducts(f: CatalogFilters, limit?: number): Promise<P
   return limit === undefined ? cards : cards.slice(0, limit);
 }
 
+/** Productos activos por id, sin caché (stock y precio al día para el carrito). */
+export async function listProductsByIds(ids: string[]): Promise<ProductCardData[]> {
+  const { data, error } = await createPublicSupabase()
+    .from("products")
+    .select(PRODUCT_COLUMNS)
+    .eq("is_active", true)
+    .in("id", ids)
+    .returns<ProductRow[]>();
+  if (error) throw error;
+  const { url } = supabaseEnv();
+  return data.map((row) => toCard(row, url));
+}
+
 export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
   const { data, error } = await createPublicSupabase()
     .from("products")
@@ -116,7 +130,6 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   return {
     ...toCard(data, url),
     description: data.description,
-    stock: data.stock,
     categorySlug: data.categories.slug,
     images: sortedImages(data).map((img) => ({ url: productImageUrl(img.path, url), alt: img.alt ?? data.name })),
   };
