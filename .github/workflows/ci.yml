@@ -10,8 +10,8 @@ jobs:
     name: Lint, tipos, unitarias y build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -27,20 +27,17 @@ jobs:
     # Se quita en la Tarea 3, cuando exista el esquema de Supabase.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - run: supabase start
-      - run: supabase test db
+      - run: npx supabase start
+      - run: npx supabase test db
       - name: Variables de Supabase local
         run: |
-          supabase status -o env \
+          npx supabase status -o env \
             --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
             --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
             | grep -E '^NEXT_PUBLIC_' >> "$GITHUB_ENV"
