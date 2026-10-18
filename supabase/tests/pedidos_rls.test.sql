@@ -83,7 +83,7 @@ reset role;
 -- Admin ---------------------------------------------------------------------------
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000ad", "role": "authenticated"}';
-select is((select count(*)::int from storage.objects where bucket_id = 'payment-proofs'), 1, 'admin ve la captura de A');
+select is((select count(*)::int from storage.objects where bucket_id = 'payment-proofs' and name like '00000000-0000-0000-0000-00000000000a/%'), 1, 'admin ve la captura de A');
 reset role;
 
 -- Restricciones -----------------------------------------------------------------

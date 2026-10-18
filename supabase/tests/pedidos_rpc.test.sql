@@ -3,7 +3,8 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
 
--- Datos propios de la prueba ------------------------------------------------------
+-- Datos propios de la prueba (los pedidos de otras corridas se borran dentro de esta transacción)
+delete from public.orders;
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'a@test.bo'),
   ('00000000-0000-0000-0000-00000000000b', 'b@test.bo');
@@ -156,6 +157,16 @@ select is(public.expire_orders(now() + interval '49 hours'), 1, 'un rechazado ve
 select is((select status::text from public.orders where id = current_setting('t.o3')::uuid), 'cancelado', 'el rechazado vencido queda cancelado');
 select is(public.expire_orders(now() + interval '1000 hours'), 0, 'en revisión nunca vence');
 select is((select count(*)::int from cron.job where jobname = 'vencer-pedidos'), 1, 'el vencimiento está programado');
+
+-- Borrar productos de prueba cuando alguno ya se vendió -------------------------------------
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000ad', 'admin@test.bo');
+update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000000ad';
+update public.products set is_sample = true where slug in ('t-p5', 't-p3');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000ad');
+select lives_ok($$select public.delete_sample_products()$$, 'borrar productos de prueba funciona aunque alguno tenga pedidos');
+select pg_temp.as_admin();
+select is((select is_active from public.products where slug = 't-p5'), false, 'un producto de prueba con pedidos se oculta en vez de borrarse');
+select is((select count(*)::int from public.order_items where product_id = '00000000-0000-0000-0000-0000000000a5') > 0, true, 'los pedidos conservan sus productos');
 
 select * from finish();
 rollback;

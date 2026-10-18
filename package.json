@@ -13,7 +13,8 @@
     "test:int": "INTEGRATION=1 vitest run --passWithNoTests",
     "test:e2e": "playwright test",
     "db:test": "supabase test db",
-    "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
+    "db:reset": "supabase db reset && rm -rf .next"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
