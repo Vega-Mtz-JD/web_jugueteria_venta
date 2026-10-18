@@ -1,5 +1,7 @@
 import { ShoppingBagIcon } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
+import { HeaderAccount, LoginLink } from "@/features/auth/HeaderAccount";
 import { Logo } from "@/components/brand/Logo";
 import { MobileMenu } from "./MobileMenu";
 import { NAV_LINKS } from "./nav-links";
@@ -7,11 +9,11 @@ import { NAV_LINKS } from "./nav-links";
 export function SiteHeader({ storeName }: { storeName: string }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-crema/75 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
         <Link href="/" className="mr-auto" aria-label={`${storeName}, ir al inicio`}>
           <Logo storeName={storeName} />
         </Link>
-        <nav className="hidden items-center gap-7 text-[0.95rem] font-medium md:flex">
+        <nav className="mr-2 hidden items-center gap-7 text-[0.95rem] font-medium md:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -22,6 +24,9 @@ export function SiteHeader({ storeName }: { storeName: string }) {
             </Link>
           ))}
         </nav>
+        <Suspense fallback={<LoginLink />}>
+          <HeaderAccount />
+        </Suspense>
         <Link
           href="/carrito"
           prefetch={false}
