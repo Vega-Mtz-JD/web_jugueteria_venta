@@ -130,3 +130,19 @@ export async function setOrderFields(orderId: string, values: Record<string, unk
   const { error } = await adminClient().from("orders").update(values).eq("id", orderId);
   if (error) throw error;
 }
+
+/** Producto propio de una prueba (no toca los del seed, que usan otras pruebas en paralelo). */
+export async function createProduct(values: { name?: string; stock?: number; priceCents?: number } = {}) {
+  const admin = adminClient();
+  const { data: category, error: ce } = await admin.from("categories").select("id").eq("slug", "estrategia").single();
+  if (ce) throw ce;
+  const tag = crypto.randomUUID().slice(0, 8);
+  const name = values.name ?? `Juego e2e ${tag}`;
+  const { data, error } = await admin
+    .from("products")
+    .insert({ name, slug: `e2e-${tag}`, category_id: category.id, price_cents: values.priceCents ?? 10000, stock: values.stock ?? 3 })
+    .select("id, slug, name")
+    .single();
+  if (error) throw error;
+  return data;
+}

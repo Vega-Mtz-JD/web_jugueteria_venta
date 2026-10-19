@@ -10,3 +10,8 @@ export async function requireAdmin(): Promise<SessionUser> {
   if (!user?.isAdmin) notFound();
   return user;
 }
+
+/** Para Server Actions: true si quien llama es administrador (la base lo vuelve a validar). */
+export async function isAdminSession(): Promise<boolean> {
+  return (await getSessionUser())?.isAdmin ?? false;
+}

@@ -13,7 +13,7 @@ export function OrderList({ orders, empty }: { orders: AdminOrderRow[]; empty: s
     return <p className="rounded-3xl border border-dashed border-input bg-papel px-6 py-12 text-center text-muted-foreground">{empty}</p>;
   }
   return (
-    <ul className="grid gap-3">
+    <ul className="grid grid-cols-[minmax(0,1fr)] gap-3">
       {orders.map((o) => (
         <li key={o.id}>
           <Link

@@ -133,6 +133,12 @@ select ok(jsonb_typeof(current_setting('t.sum')::jsonb -> 'lowStock') = 'array' 
 -- Contacto del cliente ------------------------------------------------------------------------------
 select is((select email || ' ' || coalesce(phone, '-') from public.admin_customer_contact(current_setting('t.d1')::uuid)), 'cliente@test.bo -', 'el admin ve el correo del cliente del pedido');
 
+-- Fotos de productos: solo imágenes comunes de hasta 5 MB ------------------------------------------
+select pg_temp.as_postgres();
+select is((select allowed_mime_types from storage.buckets where id = 'product-images'),
+  array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'], 'el bucket de fotos no acepta SVG ni PDF');
+select is((select file_size_limit from storage.buckets where id = 'product-images'), 5242880::bigint, 'fotos de hasta 5 MB');
+
 -- Seguridad ----------------------------------------------------------------------------------------
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
 select throws_ok($$select pg_temp.mover('t.d1', 'pagado', 'entregado')$$, '42501', null, 'un cliente no cambia estados');
