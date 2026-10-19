@@ -1,7 +1,7 @@
 # Ludiq — tienda online de juegos de mesa (La Paz, Bolivia)
 
 > Memoria del proyecto: qué se construye, por qué, cómo está armado y en qué estado está.
-> Actualizado: 19/10/2026 (plan 1 en producción, plan 2 en revisión en el PR #2).
+> Actualizado: 19/10/2026 (planes 1 y 2 en producción; empieza el plan 3).
 > "Ludiq" es un nombre de relleno: el nombre, el logo y el lema reales los pone el cliente.
 
 ---
@@ -40,7 +40,7 @@ Documentos de origen:
 | Base | Supabase gratis, en us-east-1 | El plan 4 agrega una consulta diaria para que no se pause y respaldos con pg_dump |
 | Pagos | Confirmación manual de la captura | El cliente ya trabaja así; sin costo de pasarela |
 | Stock | Se **reserva** al crear el pedido, en el estado `esperando_pago`, y vence a los 60 minutos | El código del pedido tiene que existir antes de pagar, porque va en la glosa |
-| Correos | SMTP con el Gmail de la tienda | Resend necesita un dominio verificado; Supabase trae un límite de correos muy bajo |
+| Correos | SMTP con Gmail (piloto: universitywebsite2026@gmail.com; luego uno propio de la tienda) | Resend necesita un dominio verificado; Supabase trae un límite de correos muy bajo |
 | Repositorio | GitHub `Vega-Mtz-JD/web_jugueteria_venta` (público) | `main` es producción; se trabaja en ramas `feat/…` con PR y vista previa de Netlify |
 
 ## 3. Arquitectura
@@ -146,8 +146,8 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 | Plan | Contenido | Estado |
 |---|---|---|
 | 1 | Fundaciones y catálogo público (portada, catálogo, ficha, SEO, CI, Netlify) | ✅ En producción: https://ludiq-lapaz.netlify.app (PR #1) |
-| 2 | Cuentas, carrito, checkout, pago QR y mis pedidos | 🔍 PR #2 con la revisión final aplicada. Falta: arreglar el SMTP en Supabase, probar el registro real y fusionar |
-| 3 | Panel del dueño (PWA): pedidos, productos con cámara, "Vendí en tienda", ajustes, administradores | Por planificar |
+| 2 | Cuentas, carrito, checkout, pago QR y mis pedidos | ✅ En producción (PR #2). Compra real probada por Diego en la vista previa; SMTP con Gmail funcionando |
+| 3 | Panel del dueño (PWA): portada con números clave, pedidos, productos con cámara, "Vendí en tienda", ajustes, administradores y **proveedores** (nuevo pedido de Diego) | En planificación |
 | 4 | Avisos (Web Push al dueño, correos al comprador), respaldos y consulta diaria contra la pausa | Por planificar |
 | 5 | Estadísticas | Por planificar |
 | Etapa 2 | Estadísticas avanzadas, demo de portafolio, fotos reales del Illimani, dominio propio | Diciembre |
@@ -190,8 +190,9 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 10. **React no dispara `onChange`** si se elige el mismo archivo que ya tenía el input antes de hidratar → el helper de las e2e vacía el input y reintenta.
 11. **La caché `"use cache"` en `.next` sobrevive entre builds** → después de `supabase db reset`, borrar `.next` (`npm run db:reset`).
 12. **pgTAP no debe depender de datos de otras corridas:** cada prueba usa sus propios registros dentro de una transacción.
-13. **Shell:** nunca usar `pkill -f` con un patrón que aparezca en el propio comando, porque mata la terminal. Hay otro `next-server` del usuario (v16.3.6) que no hay que tocar.
-14. **Node 22** se carga con `source ~/.nvm/nvm.sh`; la terminal no interactiva usa v20.
+13. **SMTP de Gmail:** necesita la verificación en 2 pasos y una contraseña de aplicación de 16 letras sin espacios, con el usuario y el remitente iguales al Gmail. El error `535 5.7.8` significa credenciales incorrectas y se ve en *Logs → Auth*. Para las llamadas a `/auth/v1/admin` se usa la clave `service_role` legacy (la `sb_secret_` nueva da 401).
+14. **Shell:** nunca usar `pkill -f` con un patrón que aparezca en el propio comando, porque mata la terminal. Hay otro `next-server` del usuario (v16.3.6) que no hay que tocar.
+15. **Node 22** se carga con `source ~/.nvm/nvm.sh`; la terminal no interactiva usa v20.
 
 ## 9. Cuentas y servicios
 
