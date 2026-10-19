@@ -10,6 +10,7 @@ export type OrderDetail = {
   number: number;
   status: OrderStatus;
   createdAt: string;
+  statusChangedAt: string;
   deliveryMethod: "recojo" | "envio_ciudad" | "encomienda";
   zoneName: string | null;
   zoneMode: "domicilio" | "punto" | null;
@@ -33,18 +34,27 @@ export type OrderDetail = {
   proofs: { url: string; createdAt: string }[];
 };
 
+async function currentUserId(supabase: Awaited<ReturnType<typeof createServerSupabase>>): Promise<string | null> {
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims?.sub ?? null;
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Pedido del usuario con sesión; null si no existe o es de otra persona (RLS). */
 export async function getOrderForCustomer(orderId: string): Promise<OrderDetail | null> {
   if (!UUID.test(orderId)) return null;
   const supabase = await createServerSupabase();
+  const uid = await currentUserId(supabase);
+  if (!uid) return null;
+  // Filtro explícito por dueño: con RLS, una cuenta admin vería pedidos ajenos como propios.
   const { data: o } = await supabase
     .from("orders")
     .select(
       "*, delivery_zones(name), meeting_points(name), order_items(product_name, unit_price_cents, quantity), order_events(to_status, actor, note, created_at), payment_proofs(path, created_at)",
     )
     .eq("id", orderId)
+    .eq("customer_id", uid)
     .maybeSingle();
   if (!o) return null;
 
@@ -58,6 +68,7 @@ export async function getOrderForCustomer(orderId: string): Promise<OrderDetail 
     number: o.number,
     status: o.status,
     createdAt: o.created_at,
+    statusChangedAt: o.status_changed_at,
     deliveryMethod: o.delivery_method,
     zoneName: o.delivery_zones?.name ?? null,
     zoneMode: o.zone_mode,
@@ -106,9 +117,12 @@ export type OrderSummary = { id: string; number: number; status: OrderStatus; cr
 /** Pedidos del usuario con sesión, del más reciente al más antiguo. */
 export async function listOrdersForCustomer(): Promise<OrderSummary[]> {
   const supabase = await createServerSupabase();
+  const uid = await currentUserId(supabase);
+  if (!uid) return [];
   const { data, error } = await supabase
     .from("orders")
     .select("id, number, status, created_at, total_cents, order_items(quantity)")
+    .eq("customer_id", uid)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data.map((o) => ({

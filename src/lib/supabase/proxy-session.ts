@@ -8,6 +8,13 @@ import { supabaseEnv } from "./env";
  * a quien abre una ruta protegida sin sesión. Patrón oficial de @supabase/ssr.
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
+  // Enlace de un correo que cayó en otra ruta (p. ej. la URL del sitio como respaldo): a /auth/confirm.
+  const { searchParams, pathname } = request.nextUrl;
+  if (pathname !== "/auth/confirm" && searchParams.has("token_hash") && searchParams.has("type")) {
+    const confirm = request.nextUrl.clone();
+    confirm.pathname = "/auth/confirm";
+    return NextResponse.redirect(confirm);
+  }
   const { url, anonKey } = supabaseEnv();
   let response = NextResponse.next({ request });
 

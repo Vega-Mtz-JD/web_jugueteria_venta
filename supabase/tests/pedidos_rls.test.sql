@@ -1,7 +1,7 @@
 -- Pedidos, entrega y pagos: estructura y reglas de seguridad (RLS).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(23);
 
 -- Usuarios y datos de la prueba (como postgres) -----------------------------
 insert into auth.users (id, email) values
@@ -28,6 +28,7 @@ select ok(
 );
 select is((select public from storage.buckets where id = 'payment-proofs'), false, 'el bucket de capturas es privado');
 select is((select delivery_fee_home_cents from public.store_settings), 1500, 'tarifa a domicilio por defecto Bs 15');
+select is((select allowed_mime_types from storage.buckets where id = 'payment-proofs'), array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'], 'las capturas solo aceptan fotos (no SVG)');
 
 -- Visitante sin cuenta --------------------------------------------------------
 set local role anon;

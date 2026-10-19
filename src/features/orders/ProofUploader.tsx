@@ -5,15 +5,27 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import { submitProofAction } from "./actions";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
+import { orderStatusAction, submitProofAction } from "./actions";
 import { compressProof, extensionFor, validateProofFile } from "./compress";
 
-export function ProofUploader({ orderId, userId }: { orderId: string; userId: string }) {
+export function ProofUploader({
+  orderId,
+  userId,
+  code,
+  whatsappPhone,
+}: {
+  orderId: string;
+  userId: string;
+  code: string;
+  whatsappPhone: string | null;
+}) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "sending">("idle");
+  const [closed, setClosed] = useState(false);
 
   // Libera la vista previa al salir de la página.
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
@@ -47,9 +59,34 @@ export function ProofUploader({ orderId, userId }: { orderId: string; userId: st
       if ("error" in result) throw new Error(result.error);
       router.push(`/pedidos/${orderId}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No pudimos enviar la captura.");
+      // Si el pedido ya no acepta capturas (venció o se canceló), decirlo claro: puede que ya haya pagado.
+      const current = await orderStatusAction(orderId).catch(() => null);
+      if (current && current !== "esperando_pago" && current !== "rechazado") {
+        setClosed(true);
+      } else {
+        setError(e instanceof Error ? e.message : "No pudimos enviar la captura.");
+      }
       setStatus("idle");
     }
+  }
+
+  if (closed) {
+    return (
+      <div role="alert" className="grid gap-3 rounded-2xl bg-rojo/10 p-5">
+        <p className="font-semibold text-rojo">Tu pedido venció o se canceló, así que ya no acepta capturas.</p>
+        <p className="text-sm">Si ya pagaste, escríbenos con el código {code} y lo resolvemos enseguida.</p>
+        {whatsappPhone && (
+          <a
+            href={buildWhatsAppLink(whatsappPhone, `Hola, pagué el pedido ${code} pero venció antes de subir la captura`)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-11 w-fit items-center rounded-lg bg-cubo-verde px-4 font-semibold text-white"
+          >
+            Escribir por WhatsApp
+          </a>
+        )}
+      </div>
+    );
   }
 
   return (

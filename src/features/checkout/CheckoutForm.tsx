@@ -19,6 +19,29 @@ const field =
 
 type Errors = Partial<Record<string, string>>;
 
+/**
+ * Clave de idempotencia del pedido, guardada por contenido del carrito en sessionStorage:
+ * si la respuesta se pierde y la persona reintenta o recarga, la base devuelve el mismo pedido.
+ */
+function requestIdFor(lines: { productId: string; quantity: number }[]): { id: string; forget: () => void } {
+  const key = `ludiq:pedido:${lines.map((l) => `${l.productId}x${l.quantity}`).sort().join(",")}`;
+  let id: string | null = null;
+  try {
+    id = sessionStorage.getItem(key);
+    if (!id) sessionStorage.setItem(key, (id = crypto.randomUUID()));
+  } catch {
+    id ??= crypto.randomUUID();
+  }
+  return {
+    id,
+    forget: () => {
+      try {
+        sessionStorage.removeItem(key);
+      } catch {}
+    },
+  };
+}
+
 function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) {
   return (
     <div className="grid gap-1.5">
@@ -52,7 +75,6 @@ export function CheckoutForm({
 }) {
   const router = useRouter();
   const { lines, products, visible, subtotal, adjusted, clear, refresh } = useCartProducts();
-  const [requestId] = useState(() => crypto.randomUUID());
   const [pending, setPending] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -114,14 +136,22 @@ export function CheckoutForm({
     }
     setErrors({});
     setPending(true);
-    const result = await createOrderAction({ ...parsed.data, requestId, items: lines });
-    if ("orderId" in result) {
-      clear();
-      router.push(`/pedidos/${result.orderId}/pago`);
-      return;
+    const request = requestIdFor(lines);
+    try {
+      const result = await createOrderAction({ ...parsed.data, requestId: request.id, items: lines });
+      if ("orderId" in result) {
+        request.forget();
+        clear();
+        router.push(`/pedidos/${result.orderId}/pago`);
+        return;
+      }
+      setFormError(result.error);
+      await refresh().catch(() => {});
+    } catch {
+      setFormError(
+        "No pudimos confirmar tu pedido: revisa tu conexión y vuelve a tocar «Continuar al pago». No se creará un pedido repetido.",
+      );
     }
-    setFormError(result.error);
-    await refresh();
     setPending(false);
   }
 

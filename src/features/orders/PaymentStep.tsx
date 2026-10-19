@@ -15,6 +15,8 @@ export function PaymentStep(props: {
   totalCents: number;
   methods: PaymentMethod[];
   rejectionReason: string | null;
+  deadline: string;
+  whatsappPhone: string | null;
 }) {
   const [selected, setSelected] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -28,6 +30,9 @@ export function PaymentStep(props: {
             Rechazamos la captura anterior: {props.rejectionReason}. Sube una nueva.
           </p>
         )}
+        <p className="rounded-xl bg-mostaza/15 px-4 py-3 text-sm font-medium">
+          Sube la captura antes de {props.deadline}. Después de eso el pedido se cancela solo y el stock se libera.
+        </p>
         <div>
           <p className="text-sm text-muted-foreground">Total a pagar</p>
           <p className="font-serif text-4xl font-extrabold tabular-nums">{formatBs(props.totalCents)}</p>
@@ -88,7 +93,7 @@ export function PaymentStep(props: {
 
       <section>
         <h2 className="mb-4 font-serif text-xl font-bold">Sube la captura del pago</h2>
-        <ProofUploader orderId={props.orderId} userId={props.userId} />
+        <ProofUploader orderId={props.orderId} userId={props.userId} code={props.code} whatsappPhone={props.whatsappPhone} />
       </section>
     </div>
   );

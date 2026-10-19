@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = safeRedirectPath(searchParams.get("siguiente"));
+  // Recuperar contraseña siempre termina en /nueva-clave; confirmar cuenta, en el inicio.
+  const next = type === "recovery" ? "/nueva-clave" : safeRedirectPath(searchParams.get("siguiente"));
 
   if (tokenHash && type) {
     const supabase = await createServerSupabase();

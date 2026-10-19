@@ -168,5 +168,15 @@ select pg_temp.as_admin();
 select is((select is_active from public.products where slug = 't-p5'), false, 'un producto de prueba con pedidos se oculta en vez de borrarse');
 select is((select count(*)::int from public.order_items where product_id = '00000000-0000-0000-0000-0000000000a5') > 0, true, 'los pedidos conservan sus productos');
 
+-- Mismo producto con el id en distinto caso (llamada directa a la API) ---------------------
+select pg_temp.as_admin();
+update public.products set stock = 20 where slug = 't-p1';
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+select throws_like(
+  $$select * from public.create_order(gen_random_uuid(), '[{"product_id":"00000000-0000-0000-0000-0000000000a1","quantity":1},{"product_id":"00000000-0000-0000-0000-0000000000A1","quantity":20}]', pg_temp.recojo(), pg_temp.no_invoice())$$,
+  '%repetidos%', 'el mismo producto con el id en mayúsculas cuenta como repetido'
+);
+select is(pg_temp.stock('t-p1'), 20, 'ese intento no toca el stock');
+
 select * from finish();
 rollback;

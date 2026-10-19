@@ -13,4 +13,10 @@ describe("safeRedirectPath", () => {
     expect(safeRedirectPath(null)).toBe("/");
     expect(safeRedirectPath("")).toBe("/");
   });
+  it("rechaza trucos con tabuladores, saltos de línea o barras invertidas", () => {
+    expect(safeRedirectPath("/\t/evil.com")).toBe("/");
+    expect(safeRedirectPath("/\n/evil.com")).toBe("/");
+    expect(safeRedirectPath("/\r\n/evil.com")).toBe("/");
+    expect(safeRedirectPath("/a\\b")).toBe("/");
+  });
 });

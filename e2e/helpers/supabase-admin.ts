@@ -114,3 +114,8 @@ export async function orderStatus(orderId: string): Promise<string> {
   if (error) throw error;
   return data.status;
 }
+
+export async function makeAdmin(userId: string) {
+  const { error } = await adminClient().from("profiles").update({ role: "admin" }).eq("id", userId);
+  if (error) throw error;
+}
