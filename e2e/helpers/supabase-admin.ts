@@ -82,8 +82,12 @@ export async function ordersOf(customerId: string) {
   return data;
 }
 
-/** Pedido de prueba (recojo, 1 unidad) creado directamente con la clave de servicio. */
-export async function createOrderFor(customerId: string, slug = "uno"): Promise<{ id: string; number: number; totalCents: number }> {
+/** Pedido de prueba (recojo, 1 unidad; `overrides` cambia la entrega) creado directamente con la clave de servicio. */
+export async function createOrderFor(
+  customerId: string,
+  slug = "uno",
+  overrides: Record<string, unknown> = {},
+): Promise<{ id: string; number: number; totalCents: number }> {
   const admin = adminClient();
   const { data: product, error: pe } = await admin.from("products").select("id, name, price_cents").eq("slug", slug).single();
   if (pe) throw pe;
@@ -98,6 +102,7 @@ export async function createOrderFor(customerId: string, slug = "uno"): Promise<
       subtotal_cents: product.price_cents,
       delivery_fee_cents: 0,
       total_cents: product.price_cents,
+      ...overrides,
     })
     .select("id, number, total_cents")
     .single();
@@ -117,5 +122,11 @@ export async function orderStatus(orderId: string): Promise<string> {
 
 export async function makeAdmin(userId: string) {
   const { error } = await adminClient().from("profiles").update({ role: "admin" }).eq("id", userId);
+  if (error) throw error;
+}
+
+/** Cambia columnas de un pedido sin tocar su estado (p. ej. para simular que lleva horas esperando). */
+export async function setOrderFields(orderId: string, values: Record<string, unknown>) {
+  const { error } = await adminClient().from("orders").update(values).eq("id", orderId);
   if (error) throw error;
 }

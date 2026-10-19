@@ -309,6 +309,11 @@ isOneToOne: false
 "admin_count_shelf":
 { Args: { "p_counted": number,"p_product_id": string }; Returns: number
                            },
+"admin_customer_contact":
+{ Args: { "p_order_id": string }; Returns: {
+              "email": string,"full_name": string,"phone": string
+            }[]
+                           },
 "admin_dashboard_summary":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },

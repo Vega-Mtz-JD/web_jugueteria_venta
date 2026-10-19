@@ -130,6 +130,9 @@ select is((current_setting('t.sum')::jsonb ->> 'pendingReviewOver24h')::int, 1, 
 select is((current_setting('t.sum')::jsonb ->> 'toDeliver')::int, 1, 'uno por entregar');
 select ok(jsonb_typeof(current_setting('t.sum')::jsonb -> 'lowStock') = 'array' and (current_setting('t.sum')::jsonb ? 'outOfStock'), 'trae poco stock y agotados');
 
+-- Contacto del cliente ------------------------------------------------------------------------------
+select is((select email || ' ' || coalesce(phone, '-') from public.admin_customer_contact(current_setting('t.d1')::uuid)), 'cliente@test.bo -', 'el admin ve el correo del cliente del pedido');
+
 -- Seguridad ----------------------------------------------------------------------------------------
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
 select throws_ok($$select pg_temp.mover('t.d1', 'pagado', 'entregado')$$, '42501', null, 'un cliente no cambia estados');
@@ -137,6 +140,7 @@ select throws_ok($$select public.admin_set_admin('cliente@test.bo', true)$$, '42
 select throws_ok($$select * from public.admin_list_admins()$$, '42501', null, 'un cliente no ve los administradores');
 select throws_ok($$select public.admin_delete_product('00000000-0000-0000-0000-0000000000f1')$$, '42501', null, 'un cliente no borra productos');
 select throws_ok($$select public.admin_dashboard_summary()$$, '42501', null, 'un cliente no ve el resumen');
+select throws_ok(format($$select * from public.admin_customer_contact('%s')$$, current_setting('t.d1')), '42501', null, 'un cliente no ve contactos');
 
 select * from finish();
 rollback;
