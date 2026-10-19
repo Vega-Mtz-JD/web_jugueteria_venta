@@ -46,3 +46,24 @@ Ninguna de las usadas en el plan 1 tiene problemas en Netlify. Hasta tener una n
 | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto de Supabase en la nube |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | clave pública (anon/publishable) del proyecto |
 | `NEXT_PUBLIC_SITE_URL` | la URL de Netlify, por ejemplo `https://<sitio>.netlify.app` |
+
+## Cuentas (Supabase Auth) en la nube
+
+Configurar una vez en el panel de Supabase del proyecto `lpnlqezlwsmrtywzotrf`:
+
+1. **Correo (SMTP)** — *Authentication → Emails → SMTP Settings*. El SMTP incluido de Supabase envía muy pocos correos por hora; se usa el Gmail de la tienda:
+   - Activar la verificación en 2 pasos de esa cuenta Gmail y crear una **contraseña de aplicación**.
+   - Host `smtp.gmail.com`, puerto `465`, usuario = el Gmail, contraseña = la de aplicación, remitente "Ludiq".
+   - Resend no sirve todavía: sin un dominio propio verificado solo envía al dueño de la cuenta.
+2. **URLs** — *Authentication → URL Configuration*:
+   - Site URL: `https://ludiq-lapaz.netlify.app`
+   - Redirect URLs: `https://ludiq-lapaz.netlify.app/**` y `https://deploy-preview-*--ludiq-lapaz.netlify.app/**`
+3. **Plantillas en español** — *Authentication → Emails → Templates*: copiar el contenido de `supabase/templates/confirmacion.html` en **Confirm signup** (asunto "Confirma tu cuenta") y `supabase/templates/recuperar.html` en **Reset password** (asunto "Recupera tu contraseña"). Usan `{{ .RedirectTo }}` + `token_hash` sobre `/auth/confirm`: el enlace vuelve al mismo sitio desde donde se pidió (producción o una vista previa, que deben estar en Redirect URLs) y funciona aunque se abra en otro dispositivo. Si se cambian las plantillas en el repo, hay que volver a pegarlas aquí.
+4. **Confirmación de correo**: activada (*Authentication → Providers → Email → Confirm email*).
+5. **Google** (opcional, diciembre): cliente OAuth "Aplicación web" en Google Cloud con redirección `https://lpnlqezlwsmrtywzotrf.supabase.co/auth/v1/callback`; ID y secreto en *Authentication → Providers → Google*. La web ya tiene `/auth/callback`; falta el botón (plan 2, Tarea 9).
+
+## Migraciones y datos en la nube
+
+- Subir cambios de esquema: `npx supabase db push` (sin `--include-seed`; el seed con productos de prueba se cargó una sola vez al crear el proyecto).
+- Verificar: `npx supabase migration list --linked`.
+- `npm run db:reset` es **solo local** (borra y recrea la base de Docker).

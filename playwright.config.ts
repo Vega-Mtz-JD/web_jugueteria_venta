@@ -17,7 +17,9 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "npm run build && npm run start",
+        // Base local como el seed y build desde cero: el build pre-renderiza fichas con el stock
+        // y la caché de "use cache" en .next guardaría ids viejos tras un `supabase db reset`.
+        command: "node e2e/reset-db.mts && rm -rf .next && npm run build && npm run start",
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,

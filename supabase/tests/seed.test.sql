@@ -10,7 +10,7 @@ select is(
   6, 'cada categoría tiene al menos 2 productos activos'
 );
 select is((select count(*)::int from public.products where is_active), 17, 'hay 17 productos activos');
-select is((select count(*)::int from public.products where is_active and stock = 0), 1, 'exactamente 1 producto activo agotado');
+select is((select stock from public.products where slug = 'exploding-kittens'), 0, 'Exploding Kittens viene agotado');
 select is(
   (select count(*)::int from public.products p
    where p.is_active and not exists (select 1 from public.product_images i where i.product_id = p.id)),

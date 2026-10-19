@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { CardAddButton } from "@/features/cart/CardAddButton";
 import { ageLabel } from "@/lib/labels";
 import { formatBs } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -12,15 +12,18 @@ function discountPercent(price: number, compareAt: number): number {
   return Math.round((1 - price / compareAt) * 100);
 }
 
+/**
+ * Toda la tarjeta lleva a la ficha (enlace "estirado" sobre el nombre) y el "+"
+ * agrega al carrito; así no hay un botón dentro de un enlace.
+ */
 export function ProductCard({ product }: { product: ProductCardData }) {
   const age = ageLabel(product.minAge);
   return (
-    <Link
-      href={`/producto/${product.slug}`}
+    <article
       data-testid="product-card"
       className={cn(
         styles.card,
-        "group flex w-full min-w-0 flex-col rounded-2xl border border-[#eadcc4] bg-papel p-2.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:p-3",
+        "group relative flex w-full min-w-0 flex-col rounded-2xl border border-[#eadcc4] bg-papel p-2.5 focus-within:ring-3 focus-within:ring-ring/50 sm:p-3",
       )}
     >
       <div className={cn(styles.media, "relative aspect-[4/3] overflow-hidden rounded-xl bg-crema-2")}>
@@ -46,7 +49,9 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           {age && <span>{age}</span>}
         </p>
         <h3 className="mt-1 line-clamp-2 font-serif text-[0.95rem] font-semibold leading-snug sm:text-base">
-          {product.name}
+          <Link href={`/producto/${product.slug}`} className="outline-none after:absolute after:inset-0 after:rounded-2xl">
+            {product.name}
+          </Link>
         </h3>
         <div className="mt-auto flex items-end justify-between gap-2 pt-3">
           <p className="flex flex-col leading-tight">
@@ -56,15 +61,10 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             <span className="font-bold">{formatBs(product.priceCents)}</span>
           </p>
           {product.inStock && (
-            <span
-              aria-hidden
-              className={cn(styles.add, "inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-verde text-crema")}
-            >
-              <PlusIcon className="size-5" />
-            </span>
+            <CardAddButton productId={product.id} name={product.name} stock={product.stock} className={styles.add} />
           )}
         </div>
       </div>
-    </Link>
+    </article>
   );
 }

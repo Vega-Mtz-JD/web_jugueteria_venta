@@ -1,0 +1,9 @@
+<div style="font-family: Georgia, serif; background: #f6efe3; color: #2b2118; padding: 32px">
+  <h1 style="font-size: 24px">Recupera tu contraseña</h1>
+  <p style="font-family: Arial, sans-serif; line-height: 1.5">Pediste cambiar tu contraseña. Toca el botón para elegir una nueva. El enlace vence en una hora.</p>
+  <p>
+    <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery"
+       style="display: inline-block; background: #1f4d3a; color: #f6efe3; padding: 12px 20px; border-radius: 10px; font-family: Arial, sans-serif; font-weight: bold; text-decoration: none">Elegir una contraseña nueva</a>
+  </p>
+  <p style="font-family: Arial, sans-serif; font-size: 13px; color: #5a4430">Si no lo pediste, ignora este correo: tu contraseña no cambia.</p>
+</div>

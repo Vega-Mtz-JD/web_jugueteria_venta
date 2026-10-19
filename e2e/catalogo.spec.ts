@@ -55,7 +55,7 @@ test.describe("catálogo", () => {
     await page.goto("/catalogo?categoria=casino");
     const title = cards(page).filter({ hasText: "Ruleta" }).locator("h3");
     await expect(title).toHaveCSS("-webkit-line-clamp", "2");
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
   });
 });

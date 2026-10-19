@@ -1,0 +1,28 @@
+{
+  "$schema": "https://repomix.com/schemas/latest/schema.json",
+  "output": {
+    "filePath": "docs/contexto/repomix-proyecto.xml",
+    "style": "xml",
+    "headerText": "Ludiq — tienda online de juegos de mesa (La Paz, Bolivia). Código completo del proyecto empaquetado para dar contexto a una IA. Leer primero docs/PROYECTO.md (resumen, arquitectura, decisiones y lecciones). Regenerar con: npx repomix",
+    "fileSummary": true,
+    "directoryStructure": true,
+    "removeEmptyLines": false,
+    "showLineNumbers": false
+  },
+  "include": [],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      ".claude/skills/**",
+      "package-lock.json",
+      "public/samples/**",
+      "e2e/fixtures/**",
+      "src/app/favicon.ico",
+      "docs/contexto/**",
+      "docs/superpowers/mockups/**",
+      "src/lib/supabase/database.types.ts"
+    ]
+  },
+  "security": { "enableSecurityCheck": true }
+}
