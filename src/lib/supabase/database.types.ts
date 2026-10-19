@@ -51,6 +51,38 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"manual_sales": {
+                  Row: {
+                    "channel": string,"created_at": string,"created_by": string,"id": string,"note": string | null,"product_id": string,"quantity": number,"unit_price_cents": number,"voided_at": string | null,"voided_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "channel": string,"created_at"?: string,"created_by": string,"id"?: string,"note"?: string | null,"product_id": string,"quantity": number,"unit_price_cents": number,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Update: {
+                    "channel"?: string,"created_at"?: string,"created_by"?: string,"id"?: string,"note"?: string | null,"product_id"?: string,"quantity"?: number,"unit_price_cents"?: number,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "manual_sales_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "manual_sales_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "manual_sales_voided_by_fkey"
+      columns: ["voided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"meeting_points": {
                   Row: {
                     "id": string,"is_active": boolean,"name": string,"reference": string | null,"sort_order": number
@@ -231,6 +263,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"stock_movements": {
+                  Row: {
+                    "actor": string | null,"created_at": string,"delta": number,"id": number,"note": string | null,"product_id": string,"reason": string,"ref_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor"?: string | null,"created_at"?: string,"delta": number,"id"?: never,"note"?: string | null,"product_id": string,"reason": string,"ref_id"?: string | null
+                  }
+                  Update: {
+                    "actor"?: string | null,"created_at"?: string,"delta"?: number,"id"?: never,"note"?: string | null,"product_id"?: string,"reason"?: string,"ref_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stock_movements_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"store_settings": {
                   Row: {
                     "address": string | null,"delivery_fee_home_cents": number,"delivery_fee_meeting_cents": number,"id": number,"pickup_hours": string | null,"store_name": string,"tagline": string | null,"updated_at": string,"whatsapp_phone": string | null
@@ -251,7 +303,24 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "cancel_order_by_customer":
+            "admin_adjust_stock":
+{ Args: { "p_delta": number,"p_product_id": string }; Returns: number
+                           },
+"admin_count_shelf":
+{ Args: { "p_counted": number,"p_product_id": string }; Returns: number
+                           },
+"admin_record_manual_sale":
+{ Args: { "p_channel": string,"p_note"?: string,"p_product_id": string,"p_quantity": number,"p_unit_price_cents": number }; Returns: string
+                           },
+"admin_reserved_units":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "product_id": string,"quantity": number
+            }[]
+                           },
+"admin_void_manual_sale":
+{ Args: { "p_sale_id": string }; Returns: undefined
+                           },
+"cancel_order_by_customer":
 { Args: { "p_order_id": string }; Returns: undefined
                            },
 "create_order":
@@ -271,8 +340,17 @@ isOneToOne: false
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"require_admin":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"reserved_units_of":
+{ Args: { "p_product_id": string }; Returns: number
+                           },
 "restock_order":
 { Args: { "p_order_id": string }; Returns: undefined
+                           },
+"set_stock_reason":
+{ Args: { "p_note"?: string,"p_reason": string,"p_ref"?: string }; Returns: undefined
                            },
 "submit_payment_proof":
 { Args: { "p_order_id": string,"p_path": string }; Returns: undefined
