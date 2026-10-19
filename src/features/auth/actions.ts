@@ -49,7 +49,8 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: { data: { full_name: parsed.data.fullName, phone }, emailRedirectTo: `${await origin()}${next}` },
+    // El enlace del correo vuelve al mismo sitio (producción o vista previa) por /auth/confirm.
+    options: { data: { full_name: parsed.data.fullName, phone }, emailRedirectTo: `${await origin()}/auth/confirm?siguiente=${encodeURIComponent(next)}` },
   });
   if (error) {
     if (error.code === "user_already_exists") return { error: "Ese correo ya tiene una cuenta. ¿Quieres ingresar?" };
@@ -62,7 +63,9 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
 
 export async function requestPasswordReset(_prev: AuthState, form: FormData): Promise<AuthState> {
   const supabase = await createServerSupabase();
-  await supabase.auth.resetPasswordForEmail(text(form, "email"));
+  await supabase.auth.resetPasswordForEmail(text(form, "email"), {
+    redirectTo: `${await origin()}/auth/confirm?siguiente=%2Fnueva-clave`,
+  });
   // Mismo mensaje exista o no la cuenta: no revela qué correos están registrados.
   return { message: "Si ese correo tiene una cuenta, te enviamos un enlace para cambiar la contraseña." };
 }

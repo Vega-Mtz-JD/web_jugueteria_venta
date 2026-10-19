@@ -58,7 +58,7 @@ Configurar una vez en el panel de Supabase del proyecto `lpnlqezlwsmrtywzotrf`:
 2. **URLs** — *Authentication → URL Configuration*:
    - Site URL: `https://ludiq-lapaz.netlify.app`
    - Redirect URLs: `https://ludiq-lapaz.netlify.app/**` y `https://deploy-preview-*--ludiq-lapaz.netlify.app/**`
-3. **Plantillas en español** — *Authentication → Emails → Templates*: copiar el contenido de `supabase/templates/confirmacion.html` en **Confirm signup** (asunto "Confirma tu cuenta") y `supabase/templates/recuperar.html` en **Reset password** (asunto "Recupera tu contraseña"). Usan `token_hash` sobre `/auth/confirm`, así el enlace funciona aunque se abra en otro dispositivo.
+3. **Plantillas en español** — *Authentication → Emails → Templates*: copiar el contenido de `supabase/templates/confirmacion.html` en **Confirm signup** (asunto "Confirma tu cuenta") y `supabase/templates/recuperar.html` en **Reset password** (asunto "Recupera tu contraseña"). Usan `{{ .RedirectTo }}` + `token_hash` sobre `/auth/confirm`: el enlace vuelve al mismo sitio desde donde se pidió (producción o una vista previa, que deben estar en Redirect URLs) y funciona aunque se abra en otro dispositivo. Si se cambian las plantillas en el repo, hay que volver a pegarlas aquí.
 4. **Confirmación de correo**: activada (*Authentication → Providers → Email → Confirm email*).
 5. **Google** (opcional, diciembre): cliente OAuth "Aplicación web" en Google Cloud con redirección `https://lpnlqezlwsmrtywzotrf.supabase.co/auth/v1/callback`; ID y secreto en *Authentication → Providers → Google*. La web ya tiene `/auth/callback`; falta el botón (plan 2, Tarea 9).
 
