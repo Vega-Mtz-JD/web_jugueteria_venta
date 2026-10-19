@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeRedirectPath } from "./redirect";
+import { isProtectedPath, safeRedirectPath } from "./redirect";
 
 describe("safeRedirectPath", () => {
   it("acepta rutas internas", () => {
@@ -18,5 +18,14 @@ describe("safeRedirectPath", () => {
     expect(safeRedirectPath("/\n/evil.com")).toBe("/");
     expect(safeRedirectPath("/\r\n/evil.com")).toBe("/");
     expect(safeRedirectPath("/a\\b")).toBe("/");
+  });
+});
+
+describe("isProtectedPath", () => {
+  it("protege la compra, los pedidos y el panel", () => {
+    for (const p of ["/checkout", "/pedidos", "/pedidos/abc", "/panel", "/panel/pedidos/1"]) expect(isProtectedPath(p)).toBe(true);
+  });
+  it("deja libre el catálogo y rutas parecidas", () => {
+    for (const p of ["/", "/catalogo", "/panelito", "/producto/panel"]) expect(isProtectedPath(p)).toBe(false);
   });
 });
