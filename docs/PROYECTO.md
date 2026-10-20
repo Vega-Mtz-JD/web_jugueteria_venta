@@ -80,7 +80,11 @@ Navegador ──► Netlify (Next.js 16 vía adaptador OpenNext)
 - `orders`:
   - estado: `esperando_pago → en_revision → pagado → enviado / listo_para_recoger → entregado`, y además `rechazado`, `cancelado` y `reembolsado`;
   - datos de entrega, factura, totales, número `#0231`, motivo de rechazo y guía de la encomienda.
-- `order_items` (con una copia del nombre y del precio), `order_events` (historial), `payment_proofs` (todas las capturas).
+- `order_items` (con una copia del nombre y del precio), `order_events` (historial), `payment_proofs` (todas las capturas); `orders.shipping_proof_path` (foto del comprobante de la encomienda, bucket privado `shipping-proofs`).
+- `stock_movements` (plan 3A): **cada** cambio de `products.stock` queda registrado por el trigger `products_log_stock` con su motivo (`alta`, `venta_web`, `devolucion_web`, `venta_manual`, `anulacion_venta_manual`, `ajuste`, `compra`), que indica quien cambia el stock con `set_config('app.stock_reason' / 'app.stock_ref' / 'app.stock_note')` (función `set_stock_reason`). La suma de los movimientos de un producto es su stock.
+- `manual_sales` (plan 3A): ventas en la tienda o por WhatsApp (`tienda` / `whatsapp`), con anulación.
+- **Stock = disponible.** Unidades **apartadas** = las de pedidos `esperando_pago`, `en_revision`, `rechazado`, `pagado` o `listo_para_recoger` (ya descontadas, pero todavía en la tienda). "Contar estante" guarda `contadas − apartadas`.
+- **Funciones del panel** (todas `security definer`, validan `require_admin()` ⇒ `42501`): `admin_set_order_status` (tabla de transiciones y control de concurrencia con el estado esperado), `admin_record_manual_sale`, `admin_void_manual_sale`, `admin_count_shelf`, `admin_adjust_stock`, `admin_reserved_units`, `admin_delete_product` (oculta si tuvo ventas), `admin_set_admin` / `admin_list_admins`, `admin_customer_contact`, `admin_dashboard_summary` (venta = productos de pedidos con pago confirmado + ventas manuales; envíos aparte; días en `America/La_Paz`).
 
 ## 4. Estructura del repositorio
 
@@ -90,6 +94,7 @@ src/
     (tienda)/            inicio, catalogo, producto/[slug], carrito, checkout, ingresar, registro,
                          recuperar, nueva-clave, pedidos, pedidos/[id], pedidos/[id]/pago, error.tsx
     auth/confirm         enlaces de correo (token_hash) · auth/callback (Google, futuro)
+    panel/               portada, pedidos, pedidos/[id], productos, productos/nuevo, productos/[id], ajustes, mas
     layout.tsx, globals.css (tokens), sitemap.ts, robots.ts, not-found.tsx, global-error.tsx
   components/ui          shadcn (button, badge, sheet, dropdown-menu, …)
   components/brand       Logo, Cube3D, IllimaniLandscape, FloatingPieces, Reveal, MotionToggle
@@ -99,6 +104,8 @@ src/
   features/cart          almacén localStorage, useCart, useCartProducts y botones
   features/checkout      esquema zod (celular, CI, NIT), tarifas, formulario y acción create_order
   features/orders        estados, consultas, acciones, pago QR, subida de captura y línea de tiempo
+  features/admin         panel: guardia, consultas, Server Actions (pedidos, productos, ajustes), transiciones,
+                         slug, esquema del producto, PanelShell/PanelNav, SummaryCards, orders/, products/, settings/
   lib/                   dinero (formatBs), etiquetas, búsqueda, WhatsApp, imágenes, clientes de Supabase
   proxy.ts               sesión y rutas protegidas
 supabase/
@@ -106,7 +113,9 @@ supabase/
   tests/                 pgTAP (RLS, funciones, seed)
   templates/             correos en español (confirmar cuenta, recuperar contraseña)
   seed.sql               6 categorías, ajustes y 18 productos de prueba
-e2e/                     Playwright (PC y celular) + helpers (admin local, sesión, captura)
+e2e/                     Playwright (PC y celular) + helpers (admin local, sesión, captura). Proyectos:
+                         desktop/mobile (tienda) → desktop-panel/mobile-panel (panel-*.spec) → portada
+public/panel.webmanifest panel instalable (íconos en public/icons, generados con scripts/panel-icons.mjs)
 docs/                    spec, planes, bocetos, hosting.md y este archivo
 .claude/skills/          skills de Claude Code usadas en el proyecto
 ```
@@ -147,9 +156,10 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 |---|---|---|
 | 1 | Fundaciones y catálogo público (portada, catálogo, ficha, SEO, CI, Netlify) | ✅ En producción: https://ludiq-lapaz.netlify.app (PR #1) |
 | 2 | Cuentas, carrito, checkout, pago QR y mis pedidos | ✅ En producción (PR #2). Compra real probada por Diego en la vista previa; SMTP con Gmail funcionando |
-| 3 | Panel del dueño (PWA): portada con números clave, pedidos, productos con cámara, "Vendí en tienda", ajustes, administradores y **proveedores** (nuevo pedido de Diego) | En planificación |
+| 3A | Panel para vender: portada con números clave, pedidos (revisar, confirmar, rechazar, enviar, reembolsar), productos con fotos, stock con historial, "Vendí", contar estante, ajustes y administradores; instalable | ✅ Programado y probado (PR #3); falta `db push`, prueba en Android y fusión |
+| 3B | Inventario y proveedores (compras que suben stock, costos y ganancia) | Por planificar (fines de noviembre) |
 | 4 | Avisos (Web Push al dueño, correos al comprador), respaldos y consulta diaria contra la pausa | Por planificar |
-| 5 | Estadísticas | Por planificar |
+| 5 | Dashboard con gráficos (ventas, inventario, ganancia, clientes) | Por planificar (primera quincena de diciembre) |
 | Etapa 2 | Estadísticas avanzadas, demo de portafolio, fotos reales del Illimani, dominio propio | Diciembre |
 
 **Pendientes y detalles menores anotados:**
@@ -157,8 +167,7 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 - **Accesibilidad:** el texto "Close" del Sheet está en inglés.
 - **Almacenamiento:**
   - faltan pruebas pgTAP de las políticas de storage;
-  - el bucket de fotos de productos no tiene límite de tamaño;
-  - se pueden subir capturas sin límite mientras el pedido espera pago.
+    - se pueden subir capturas sin límite mientras el pedido espera pago.
 - **Carrito:**
   - con más de 30 productos distintos o un id corrupto se vacía;
   - falta un reintento si falla la carga de productos;
@@ -170,11 +179,10 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
   - el CI hace el build dos veces;
   - `shadcn` está en `dependencies`;
   - `metadataBase` usa una dirección de respaldo si falta `NEXT_PUBLIC_SITE_URL`.
-- **Para el plan 3:**
-  - una función para asignar administradores;
-  - `updateTag("catalogo")` al editar productos;
-  - `images.remotePatterns` para las fotos de Supabase Storage;
-  - destacar los pedidos con más de 24 horas en revisión.
+- **Plan 3A** (decisiones y detalles diferidos en el PR #3):
+  - las pruebas de ajustes corren solo en PC (cambian datos de toda la tienda);
+  - el nombre del panel instalado ("Ludiq · Panel") está fijo en `public/panel.webmanifest`;
+  - las fotos se reordenan con "Hacer principal" (no arrastrando).
 
 ## 8. Lecciones (trampas ya resueltas, no repetir)
 
@@ -193,6 +201,10 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 13. **SMTP de Gmail:** necesita la verificación en 2 pasos y una contraseña de aplicación de 16 letras sin espacios, con el usuario y el remitente iguales al Gmail. El error `535 5.7.8` significa credenciales incorrectas y se ve en *Logs → Auth*. Para las llamadas a `/auth/v1/admin` se usa la clave `service_role` legacy (la `sb_secret_` nueva da 401).
 14. **Shell:** nunca usar `pkill -f` con un patrón que aparezca en el propio comando, porque mata la terminal. Hay otro `next-server` del usuario (v16.3.6) que no hay que tocar.
 15. **Node 22** se carga con `source ~/.nvm/nvm.sh`; la terminal no interactiva usa v20.
+16. **Precarga + `updateTag`:** un `<Link>` a la ficha pública dentro de la pantalla donde se edita el producto llenaba la caché de `getProductBySlug` mientras se guardaba, y la tienda seguía mostrando el precio viejo. En pantallas que editan datos públicos, esos enlaces van con `prefetch={false}`.
+17. **Next 16 conserva la página anterior oculta (Activity)** en el DOM: en las e2e, `getByLabel` puede encontrar dos campos; usar `getByRole`, que ignora lo oculto.
+18. **Un elemento flex con filas que se desplazan** (`overflow-x-auto` + `whitespace-nowrap`) ensancha la página si no tiene `min-w-0`; en una grilla, `grid-cols-[minmax(0,1fr)]` con textos `truncate`.
+19. **Pruebas que cambian datos compartidos** (stock de un producto del seed, ajustes, totales de la portada) no deben correr a la vez en PC y celular: usar datos propios (`createProduct`), un solo proyecto o un proyecto que corre al final.
 
 ## 9. Cuentas y servicios
 

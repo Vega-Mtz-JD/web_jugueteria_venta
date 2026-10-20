@@ -67,3 +67,16 @@ Configurar una vez en el panel de Supabase del proyecto `lpnlqezlwsmrtywzotrf`:
 - Subir cambios de esquema: `npx supabase db push` (sin `--include-seed`; el seed con productos de prueba se cargó una sola vez al crear el proyecto).
 - Verificar: `npx supabase migration list --linked`.
 - `npm run db:reset` es **solo local** (borra y recrea la base de Docker).
+
+## Panel del dueño (`/panel`)
+
+- **Primer administrador:** la persona crea su cuenta en la tienda y luego, en el *SQL Editor* de Supabase:
+  ```sql
+  update public.profiles set role = 'admin'
+  where id = (select id from auth.users where lower(email) = lower('correo@ejemplo.com'));
+  ```
+  Desde ahí, los demás administradores (hijos) se agregan en **Panel → Más → Administradores** con el correo de su cuenta.
+- **Instalar en el celular (Android, Chrome):** abrir `https://ludiq-lapaz.netlify.app/panel` con la cuenta admin → menú ⋮ → **Agregar a la pantalla principal** / **Instalar app**. Abre directo en el panel.
+- **QR reales:** Panel → Más → Ajustes → *Billeteras QR* → **Cambiar QR** (se guardan en el bucket `store-assets/qr/`).
+- **Productos de prueba:** cuando estén cargados los reales, Ajustes → *Productos de prueba* (escribir BORRAR). Los que ya tienen pedidos solo se ocultan.
+- **Buckets nuevos:** `shipping-proofs` (privado, comprobantes de encomienda) y `product-images` con límite de 5 MB y solo jpeg/png/webp/heic. Los crean las migraciones; no hay que configurarlos a mano.
