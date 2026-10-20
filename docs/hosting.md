@@ -80,3 +80,40 @@ Configurar una vez en el panel de Supabase del proyecto `lpnlqezlwsmrtywzotrf`:
 - **QR reales:** Panel → Más → Ajustes → *Billeteras QR* → **Cambiar QR** (se guardan en el bucket `store-assets/qr/`).
 - **Productos de prueba:** cuando estén cargados los reales, Ajustes → *Productos de prueba* (escribir BORRAR). Los que ya tienen pedidos solo se ocultan.
 - **Buckets nuevos:** `shipping-proofs` (privado, comprobantes de encomienda) y `product-images` con límite de 5 MB y solo jpeg/png/webp/heic. Los crean las migraciones; no hay que configurarlos a mano.
+
+## Avisos (Web Push y correos)
+
+Cómo funciona: cada cambio de estado de un pedido deja un aviso en `notification_outbox`; la base despierta (pg_net) a la Edge Function `notify`, que manda el push a los celulares de los admins que lo activaron y los correos. Un `pg_cron` (`reintentar-avisos`, cada 5 min) reintenta lo pendiente, hasta 5 veces.
+
+**Puesta en marcha en la nube (una sola vez):**
+
+1. Migración: `npx supabase db push`.
+2. Secretos de la función (no van al repo):
+   ```bash
+   npx supabase secrets set SMTP_USER=universitywebsite2026@gmail.com SMTP_PASS=<contraseña de aplicación de 16 letras>
+   npx supabase secrets set SMTP_HOST=smtp.gmail.com SMTP_PORT=465 SMTP_SECURE=true \
+     MAIL_FROM="Ludiq <universitywebsite2026@gmail.com>" SITE_URL=https://ludiq-lapaz.netlify.app \
+     VAPID_PUBLIC_KEY=<pública> VAPID_PRIVATE_KEY=<privada> NOTIFY_SECRET=<secreto largo al azar>
+   ```
+   Las claves VAPID se generan una vez (`node -e` con `crypto.createECDH("prime256v1")`, en base64url). La pública va también en Netlify.
+3. Desplegar la función: `npx supabase functions deploy notify --no-verify-jwt`.
+4. Vault (SQL Editor), con el mismo `NOTIFY_SECRET`:
+   ```sql
+   select vault.create_secret('https://lpnlqezlwsmrtywzotrf.supabase.co/functions/v1/notify', 'notify_url');
+   select vault.create_secret('<NOTIFY_SECRET>', 'notify_secret');
+   ```
+5. Netlify → *Environment variables*: `NEXT_PUBLIC_VAPID_PUBLIC_KEY` = la clave pública (no es secreta). Se aplica en el siguiente despliegue.
+6. En cada celular o PC: Panel → Más → **Activar avisos** → **Enviar aviso de prueba**. En iPhone, primero se instala el panel en la pantalla de inicio.
+
+**Si un aviso no llega:** *Edge Functions → notify → Logs* muestra el error (p. ej. `535` = contraseña de Gmail). Los pendientes: `select kind, attempts, last_error from notification_outbox where sent_at is null order by id desc;`. Gmail permite unos 500 correos por día.
+
+## Respaldos
+
+- **Base:** `.github/workflows/respaldo-base.yml`, todos los días a las 04:00 (La Paz). Hace `supabase db dump` de roles, esquema y datos, lo cifra con `gpg` (AES256) y lo guarda como artefacto por 30 días. También hace una consulta liviana para que Supabase no se pause.
+- **Archivos:** `.github/workflows/respaldo-archivos.yml`, los domingos 05:00: capturas, comprobantes, fotos y QR (`scripts/backup-storage.mjs`), cifrado igual.
+- **Secretos de GitHub** (*Settings → Secrets and variables → Actions*):
+  - Secrets: `SUPABASE_DB_URL` (Supabase → *Connect* → **Session pooler**, con la contraseña de la base: los runners de GitHub no tienen IPv6), `BACKUP_PASSPHRASE` (frase que solo conoce Diego; **sin ella los respaldos no se pueden abrir**), `SUPABASE_SERVICE_ROLE_KEY`.
+  - Variables: `SUPABASE_URL` (`https://lpnlqezlwsmrtywzotrf.supabase.co`) y `SUPABASE_ANON_KEY`.
+- **Probar a mano:** *Actions → Respaldo de la base → Run workflow*.
+- **Restaurar:** descargar el artefacto, `gpg -d respaldo-base-AAAA-MM-DD.tar.gz.gpg | tar xz`, y en un proyecto nuevo de Supabase: `psql "<cadena de conexión>" -f respaldo/roles.sql -f respaldo/schema.sql -f respaldo/data.sql`. Los archivos se vuelven a subir a sus buckets con la misma ruta.
+- **Ojo:** GitHub apaga los workflows programados si el repositorio pasa 60 días sin actividad; un commit o un *Run workflow* los reactiva.
