@@ -4,6 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
 const PANEL = /panel-.*\.spec\.ts/;
+const PORTADA = /portada-panel\.spec\.ts/;
 const desktop = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } };
 const mobile = { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } };
 
@@ -17,11 +18,13 @@ export default defineConfig({
   // Las pruebas del panel crean productos y cambian stock: corren después de las de la tienda,
   // que cuentan los productos del seed.
   projects: [
-    { name: "desktop", testIgnore: PANEL, use: desktop },
-    { name: "mobile", testIgnore: PANEL, use: mobile },
+    { name: "desktop", testIgnore: [PANEL, PORTADA], use: desktop },
+    { name: "mobile", testIgnore: [PANEL, PORTADA], use: mobile },
     { name: "desktop-panel", testMatch: PANEL, dependencies: ["desktop", "mobile"], use: desktop },
     // Ajustes cambia datos de toda la tienda: solo en un proyecto.
     { name: "mobile-panel", testMatch: PANEL, testIgnore: /panel-ajustes\.spec\.ts/, dependencies: ["desktop", "mobile"], use: mobile },
+    // La portada suma toda la tienda: corre sola al final, con la base sin pedidos de otras pruebas.
+    { name: "portada", testMatch: PORTADA, dependencies: ["desktop-panel", "mobile-panel"], use: mobile },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined

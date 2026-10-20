@@ -14,6 +14,7 @@ const FILTERS: { value: ProductFilter; label: string }[] = [
   { value: "todos", label: "Todos" },
   { value: "visibles", label: "Visibles" },
   { value: "ocultos", label: "Ocultos" },
+  { value: "poco-stock", label: "Poco stock" },
   { value: "agotados", label: "Agotados" },
 ];
 

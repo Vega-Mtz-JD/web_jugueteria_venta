@@ -149,7 +149,7 @@ test.describe("productos en el panel", () => {
 
 test("las listas del panel no se salen de la pantalla del celular", async ({ page }) => {
   await loginAsAdmin(page);
-  for (const url of ["/panel/productos", "/panel/pedidos?tab=historial", "/panel/ajustes"]) {
+  for (const url of ["/panel", "/panel/productos", "/panel/pedidos?tab=historial", "/panel/ajustes"]) {
     await page.goto(url);
     await page.getByRole("heading", { level: 1 }).waitFor();
     await page.getByRole("listitem").first().waitFor();

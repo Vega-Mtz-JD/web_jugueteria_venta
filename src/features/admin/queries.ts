@@ -101,7 +101,7 @@ async function reservedByProduct(supabase: Supabase): Promise<Map<string, number
   return new Map(data.map((r) => [r.product_id, r.quantity]));
 }
 
-export type ProductFilter = "todos" | "visibles" | "ocultos" | "agotados";
+export type ProductFilter = "todos" | "visibles" | "ocultos" | "agotados" | "poco-stock";
 
 export type AdminProductRow = {
   id: string;
@@ -128,6 +128,7 @@ export async function listAdminProducts(opts: { q?: string; categoryId?: string;
   if (opts.filter === "visibles") query = query.eq("is_active", true);
   if (opts.filter === "ocultos") query = query.eq("is_active", false);
   if (opts.filter === "agotados") query = query.eq("stock", 0);
+  if (opts.filter === "poco-stock") query = query.eq("is_active", true).gte("stock", 1).lte("stock", 3);
 
   const [{ data, error }, reserved] = await Promise.all([query, reservedByProduct(supabase)]);
   if (error) throw error;
@@ -294,4 +295,25 @@ export async function getSettingsData(): Promise<SettingsData> {
     sampleCount: samples.count ?? 0,
     me: claims.data?.claims?.sub ?? "",
   };
+}
+
+// Portada ---------------------------------------------------------------------------------------------
+
+export type DashboardSummary = {
+  pendingReview: number;
+  pendingReviewOver24h: number;
+  toDeliver: number;
+  salesToday: { cents: number; count: number };
+  salesMonth: { cents: number; count: number };
+  shippingMonthCents: number;
+  lowStock: { id: string; name: string; stock: number }[];
+  outOfStock: number;
+};
+
+/** Números de la portada (reglas de "venta" en admin_dashboard_summary). */
+export async function getDashboardSummary(): Promise<DashboardSummary> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("admin_dashboard_summary");
+  if (error) throw error;
+  return data as unknown as DashboardSummary;
 }

@@ -4,7 +4,14 @@ import { PanelShell } from "@/features/admin/PanelShell";
 import { requireAdmin } from "@/features/admin/guard";
 import { getStoreSettings } from "@/features/catalog/cached";
 
-export const metadata: Metadata = { title: { default: "Panel", template: "%s · Panel" }, robots: { index: false } };
+export const metadata: Metadata = {
+  title: { default: "Panel", template: "%s · Panel" },
+  robots: { index: false },
+  // Instalable en el celular del dueño ("Agregar a la pantalla principal").
+  manifest: "/panel.webmanifest",
+  appleWebApp: { capable: true, title: "Panel", statusBarStyle: "default" },
+  icons: { apple: "/icons/panel-192.png" },
+};
 
 async function AdminOnly({ storeName, children }: { storeName: string; children: React.ReactNode }) {
   await requireAdmin();
