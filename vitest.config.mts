@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     environment: integration ? "node" : "jsdom",
     setupFiles: integration ? [] : ["./vitest.setup.ts"],
-    include: integration ? ["src/**/*.int.test.ts"] : ["src/**/*.test.{ts,tsx}"],
+    include: integration ? ["src/**/*.int.test.ts"] : ["src/**/*.test.{ts,tsx}", "supabase/functions/_shared/**/*.test.ts"],
     exclude: integration ? [] : ["src/**/*.int.test.ts"],
     // Variables de .env.local (Supabase local) para las pruebas de integración.
     env: integration ? loadEnv("test", process.cwd(), "") : {},
