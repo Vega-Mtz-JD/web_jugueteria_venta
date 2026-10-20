@@ -1,7 +1,7 @@
 import { test, expect, type Browser, type Page } from "@playwright/test";
 import { loginAsAdmin } from "./helpers/admin";
 import { loginAsNewUser } from "./helpers/session";
-import { createOrderFor, createTestUser, productStock, setOrderFields, setOrderStatus } from "./helpers/supabase-admin";
+import { createOrderFor, createProduct, createTestUser, productStock, setOrderFields, setOrderStatus } from "./helpers/supabase-admin";
 
 const code = (n: number) => `#${String(n).padStart(4, "0")}`;
 const ENCOMIENDA = { delivery_method: "encomienda", recipient_ci: "4567890", department: "Oruro", city: "Oruro" };
@@ -79,15 +79,16 @@ test.describe("pedidos en el panel", () => {
 
   test("reembolsar un pedido pagado devuelve el stock", async ({ page }) => {
     const customer = await createTestUser("Rosa Mamani");
-    const order = await createOrderFor(customer.id, "jenga");
+    const product = await createProduct({ stock: 2 });
+    const order = await createOrderFor(customer.id, product.slug);
     await setOrderStatus(order.id, "pagado");
-    const before = await productStock("jenga");
+    const before = await productStock(product.slug);
     await loginAsAdmin(page);
     await page.goto(`/panel/pedidos/${order.id}`);
     await page.getByRole("button", { name: "Reembolsar" }).click();
     await page.getByRole("button", { name: "Sí, reembolsar" }).click();
     await expect(page.getByTestId("order-status")).toHaveText("Reembolsado");
-    expect(await productStock("jenga")).toBe(before + 1);
+    expect(await productStock(product.slug)).toBe(before + 1);
   });
 
   test("dos pestañas: la segunda acción avisa que el pedido ya cambió", async ({ page, context }) => {

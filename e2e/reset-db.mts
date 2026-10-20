@@ -21,6 +21,9 @@ async function call(path: string, init: RequestInit) {
 }
 
 await call("orders?id=not.is.null", { method: "DELETE" });
+// Lo que crean las pruebas del panel: ventas manuales y productos propios (los del seed son is_sample).
+await call("manual_sales?id=not.is.null", { method: "DELETE" });
+await call("products?is_sample=eq.false", { method: "DELETE" });
 for (const [slug, stock] of Object.entries(SEED_STOCK)) {
   await call(`products?slug=eq.${slug}`, { method: "PATCH", body: JSON.stringify({ stock, is_active: true }) });
 }

@@ -33,7 +33,7 @@ test.describe("acceso al panel", () => {
 
     const box = await nav.boundingBox();
     const viewport = page.viewportSize()!;
-    if (testInfo.project.name === "mobile") {
+    if (testInfo.project.name.startsWith("mobile")) {
       expect(box!.y + box!.height).toBeGreaterThan(viewport.height - 2); // barra pegada abajo
     } else {
       expect(box!.x).toBeLessThan(10); // columna a la izquierda

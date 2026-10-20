@@ -3,6 +3,10 @@ import { defineConfig, devices } from "@playwright/test";
 // PLAYWRIGHT_BASE_URL permite correr las pruebas contra una vista previa de Netlify.
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
+const PANEL = /panel-.*\.spec\.ts/;
+const desktop = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } };
+const mobile = { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } };
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -10,9 +14,13 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: { baseURL, trace: "on-first-retry" },
+  // Las pruebas del panel crean productos y cambian stock: corren después de las de la tienda,
+  // que cuentan los productos del seed.
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } } },
-    { name: "mobile", use: { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } } },
+    { name: "desktop", testIgnore: PANEL, use: desktop },
+    { name: "mobile", testIgnore: PANEL, use: mobile },
+    { name: "desktop-panel", testMatch: PANEL, dependencies: ["desktop", "mobile"], use: desktop },
+    { name: "mobile-panel", testMatch: PANEL, dependencies: ["desktop", "mobile"], use: mobile },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
