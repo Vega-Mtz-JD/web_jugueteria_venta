@@ -101,6 +101,13 @@ async function OrderContent({ params }: { params: PageProps<"/pedidos/[id]">["pa
                 {order.trackingCode && <> · Guía {order.trackingCode}</>}
               </p>
             )}
+            {order.shippingProofUrl && (
+              <p className="mt-2 text-sm">
+                <a href={order.shippingProofUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-verde underline-offset-4 hover:underline">
+                  Ver comprobante del envío
+                </a>
+              </p>
+            )}
             {order.invoice && (
               <p className="mt-3 text-sm">
                 Factura a nombre de <strong>{order.invoice.name}</strong> · NIT/CI {order.invoice.nit}

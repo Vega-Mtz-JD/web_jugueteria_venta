@@ -51,6 +51,38 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"manual_sales": {
+                  Row: {
+                    "channel": string,"created_at": string,"created_by": string,"id": string,"note": string | null,"product_id": string,"quantity": number,"request_id": string | null,"unit_price_cents": number,"voided_at": string | null,"voided_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "channel": string,"created_at"?: string,"created_by": string,"id"?: string,"note"?: string | null,"product_id": string,"quantity": number,"request_id"?: string | null,"unit_price_cents": number,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Update: {
+                    "channel"?: string,"created_at"?: string,"created_by"?: string,"id"?: string,"note"?: string | null,"product_id"?: string,"quantity"?: number,"request_id"?: string | null,"unit_price_cents"?: number,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "manual_sales_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "manual_sales_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "manual_sales_voided_by_fkey"
+      columns: ["voided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"meeting_points": {
                   Row: {
                     "id": string,"is_active": boolean,"name": string,"reference": string | null,"sort_order": number
@@ -113,14 +145,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "address": string | null,"address_reference": string | null,"city": string | null,"created_at": string,"customer_id": string,"delivery_fee_cents": number,"delivery_method": Database["public"]['Enums']["delivery_method"],"department": string | null,"id": string,"invoice_name": string | null,"invoice_nit": string | null,"invoice_requested": boolean,"meeting_point_custom": string | null,"meeting_point_id": string | null,"number": number,"phone": string,"recipient_ci": string | null,"recipient_name": string,"rejection_reason": string | null,"request_id": string,"shipping_agency": string | null,"status": Database["public"]['Enums']["order_status"],"status_changed_at": string,"submitted_at": string | null,"subtotal_cents": number,"total_cents": number,"tracking_code": string | null,"updated_at": string,"zone_id": string | null,"zone_mode": Database["public"]['Enums']["zone_mode"] | null
+                    "address": string | null,"address_reference": string | null,"city": string | null,"created_at": string,"customer_id": string,"delivery_fee_cents": number,"delivery_method": Database["public"]['Enums']["delivery_method"],"department": string | null,"id": string,"invoice_name": string | null,"invoice_nit": string | null,"invoice_requested": boolean,"meeting_point_custom": string | null,"meeting_point_id": string | null,"number": number,"phone": string,"recipient_ci": string | null,"recipient_name": string,"rejection_reason": string | null,"request_id": string,"shipping_agency": string | null,"shipping_proof_path": string | null,"status": Database["public"]['Enums']["order_status"],"status_changed_at": string,"submitted_at": string | null,"subtotal_cents": number,"total_cents": number,"tracking_code": string | null,"updated_at": string,"zone_id": string | null,"zone_mode": Database["public"]['Enums']["zone_mode"] | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"address_reference"?: string | null,"city"?: string | null,"created_at"?: string,"customer_id": string,"delivery_fee_cents": number,"delivery_method": Database["public"]['Enums']["delivery_method"],"department"?: string | null,"id"?: string,"invoice_name"?: string | null,"invoice_nit"?: string | null,"invoice_requested"?: boolean,"meeting_point_custom"?: string | null,"meeting_point_id"?: string | null,"number"?: number,"phone": string,"recipient_ci"?: string | null,"recipient_name": string,"rejection_reason"?: string | null,"request_id": string,"shipping_agency"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"status_changed_at"?: string,"submitted_at"?: string | null,"subtotal_cents": number,"total_cents": number,"tracking_code"?: string | null,"updated_at"?: string,"zone_id"?: string | null,"zone_mode"?: Database["public"]['Enums']["zone_mode"] | null
+                    "address"?: string | null,"address_reference"?: string | null,"city"?: string | null,"created_at"?: string,"customer_id": string,"delivery_fee_cents": number,"delivery_method": Database["public"]['Enums']["delivery_method"],"department"?: string | null,"id"?: string,"invoice_name"?: string | null,"invoice_nit"?: string | null,"invoice_requested"?: boolean,"meeting_point_custom"?: string | null,"meeting_point_id"?: string | null,"number"?: number,"phone": string,"recipient_ci"?: string | null,"recipient_name": string,"rejection_reason"?: string | null,"request_id": string,"shipping_agency"?: string | null,"shipping_proof_path"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"status_changed_at"?: string,"submitted_at"?: string | null,"subtotal_cents": number,"total_cents": number,"tracking_code"?: string | null,"updated_at"?: string,"zone_id"?: string | null,"zone_mode"?: Database["public"]['Enums']["zone_mode"] | null
                   }
                   Update: {
-                    "address"?: string | null,"address_reference"?: string | null,"city"?: string | null,"created_at"?: string,"customer_id"?: string,"delivery_fee_cents"?: number,"delivery_method"?: Database["public"]['Enums']["delivery_method"],"department"?: string | null,"id"?: string,"invoice_name"?: string | null,"invoice_nit"?: string | null,"invoice_requested"?: boolean,"meeting_point_custom"?: string | null,"meeting_point_id"?: string | null,"number"?: number,"phone"?: string,"recipient_ci"?: string | null,"recipient_name"?: string,"rejection_reason"?: string | null,"request_id"?: string,"shipping_agency"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"status_changed_at"?: string,"submitted_at"?: string | null,"subtotal_cents"?: number,"total_cents"?: number,"tracking_code"?: string | null,"updated_at"?: string,"zone_id"?: string | null,"zone_mode"?: Database["public"]['Enums']["zone_mode"] | null
+                    "address"?: string | null,"address_reference"?: string | null,"city"?: string | null,"created_at"?: string,"customer_id"?: string,"delivery_fee_cents"?: number,"delivery_method"?: Database["public"]['Enums']["delivery_method"],"department"?: string | null,"id"?: string,"invoice_name"?: string | null,"invoice_nit"?: string | null,"invoice_requested"?: boolean,"meeting_point_custom"?: string | null,"meeting_point_id"?: string | null,"number"?: number,"phone"?: string,"recipient_ci"?: string | null,"recipient_name"?: string,"rejection_reason"?: string | null,"request_id"?: string,"shipping_agency"?: string | null,"shipping_proof_path"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"status_changed_at"?: string,"submitted_at"?: string | null,"subtotal_cents"?: number,"total_cents"?: number,"tracking_code"?: string | null,"updated_at"?: string,"zone_id"?: string | null,"zone_mode"?: Database["public"]['Enums']["zone_mode"] | null
                   }
                   Relationships: [
                     {
@@ -231,6 +263,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"stock_movements": {
+                  Row: {
+                    "actor": string | null,"created_at": string,"delta": number,"id": number,"note": string | null,"product_id": string,"reason": string,"ref_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor"?: string | null,"created_at"?: string,"delta": number,"id"?: never,"note"?: string | null,"product_id": string,"reason": string,"ref_id"?: string | null
+                  }
+                  Update: {
+                    "actor"?: string | null,"created_at"?: string,"delta"?: number,"id"?: never,"note"?: string | null,"product_id"?: string,"reason"?: string,"ref_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stock_movements_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"store_settings": {
                   Row: {
                     "address": string | null,"delivery_fee_home_cents": number,"delivery_fee_meeting_cents": number,"id": number,"pickup_hours": string | null,"store_name": string,"tagline": string | null,"updated_at": string,"whatsapp_phone": string | null
@@ -251,7 +303,46 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "cancel_order_by_customer":
+            "admin_adjust_stock":
+{ Args: { "p_delta": number,"p_product_id": string }; Returns: number
+                           },
+"admin_count_shelf":
+{ Args: { "p_counted": number,"p_product_id": string }; Returns: number
+                           },
+"admin_customer_contact":
+{ Args: { "p_order_id": string }; Returns: {
+              "email": string,"full_name": string,"phone": string
+            }[]
+                           },
+"admin_dashboard_summary":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"admin_delete_product":
+{ Args: { "p_product_id": string }; Returns: string
+                           },
+"admin_list_admins":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "email": string,"full_name": string,"id": string
+            }[]
+                           },
+"admin_record_manual_sale":
+{ Args: { "p_channel": string,"p_note"?: string,"p_product_id": string,"p_quantity": number,"p_request_id"?: string,"p_unit_price_cents": number }; Returns: string
+                           },
+"admin_reserved_units":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "product_id": string,"quantity": number
+            }[]
+                           },
+"admin_set_admin":
+{ Args: { "p_email": string,"p_make_admin": boolean }; Returns: undefined
+                           },
+"admin_set_order_status":
+{ Args: { "p_expected_from": Database["public"]['Enums']["order_status"],"p_order_id": string,"p_rejection_reason"?: string,"p_shipping_agency"?: string,"p_shipping_proof_path"?: string,"p_to": Database["public"]['Enums']["order_status"],"p_tracking_code"?: string }; Returns: undefined
+                           },
+"admin_void_manual_sale":
+{ Args: { "p_sale_id": string }; Returns: undefined
+                           },
+"cancel_order_by_customer":
 { Args: { "p_order_id": string }; Returns: undefined
                            },
 "create_order":
@@ -271,8 +362,20 @@ isOneToOne: false
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"order_status_label":
+{ Args: { "p_status": Database["public"]['Enums']["order_status"] }; Returns: string
+                           },
+"require_admin":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"reserved_units_of":
+{ Args: { "p_product_id": string }; Returns: number
+                           },
 "restock_order":
 { Args: { "p_order_id": string }; Returns: undefined
+                           },
+"set_stock_reason":
+{ Args: { "p_note"?: string,"p_reason": string,"p_ref"?: string }; Returns: undefined
                            },
 "submit_payment_proof":
 { Args: { "p_order_id": string,"p_path": string }; Returns: undefined

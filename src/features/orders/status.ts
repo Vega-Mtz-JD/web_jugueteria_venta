@@ -14,6 +14,9 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
   reembolsado: "Reembolsado",
 };
 
+/** Los mismos estados, dichos desde el lado de la tienda (panel). */
+export const ADMIN_STATUS_LABEL: Record<OrderStatus, string> = { ...STATUS_LABEL, esperando_pago: "Esperando pago" };
+
 export function formatOrderCode(n: number): string {
   return `#${String(n).padStart(4, "0")}`;
 }

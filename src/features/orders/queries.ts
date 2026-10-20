@@ -32,36 +32,38 @@ export type OrderDetail = {
   items: { productName: string; unitPriceCents: number; quantity: number }[];
   events: { toStatus: OrderStatus; actor: string; note: string | null; createdAt: string }[];
   proofs: { url: string; createdAt: string }[];
+  /** Foto del comprobante de la encomienda (URL firmada), si el admin la subió. */
+  shippingProofUrl: string | null;
 };
 
-async function currentUserId(supabase: Awaited<ReturnType<typeof createServerSupabase>>): Promise<string | null> {
+type Supabase = Awaited<ReturnType<typeof createServerSupabase>>;
+
+async function currentUserId(supabase: Supabase): Promise<string | null> {
   const { data } = await supabase.auth.getClaims();
   return data?.claims?.sub ?? null;
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Pedido del usuario con sesión; null si no existe o es de otra persona (RLS). */
-export async function getOrderForCustomer(orderId: string): Promise<OrderDetail | null> {
-  if (!UUID.test(orderId)) return null;
-  const supabase = await createServerSupabase();
-  const uid = await currentUserId(supabase);
-  if (!uid) return null;
-  // Filtro explícito por dueño: con RLS, una cuenta admin vería pedidos ajenos como propios.
-  const { data: o } = await supabase
-    .from("orders")
-    .select(
-      "*, delivery_zones(name), meeting_points(name), order_items(product_name, unit_price_cents, quantity), order_events(to_status, actor, note, created_at), payment_proofs(path, created_at)",
-    )
-    .eq("id", orderId)
-    .eq("customer_id", uid)
-    .maybeSingle();
+const ORDER_DETAIL_SELECT =
+  "*, delivery_zones(name), meeting_points(name), order_items(product_name, unit_price_cents, quantity), order_events(to_status, actor, note, created_at), payment_proofs(path, created_at)" as const;
+
+/** Un pedido con su detalle (RLS decide quién lo ve; el filtro de dueño lo pone quien llama). */
+export async function fetchOrderDetail(supabase: Supabase, orderId: string, customerId?: string): Promise<OrderDetail | null> {
+  let query = supabase.from("orders").select(ORDER_DETAIL_SELECT).eq("id", orderId);
+  if (customerId) query = query.eq("customer_id", customerId);
+  const { data: o } = await query.maybeSingle();
   if (!o) return null;
 
   const proofs = [...(o.payment_proofs ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const signed = proofs.length
-    ? (await supabase.storage.from("payment-proofs").createSignedUrls(proofs.map((p) => p.path), 600)).data ?? []
-    : [];
+  const [signed, shipping] = await Promise.all([
+    proofs.length
+      ? supabase.storage.from("payment-proofs").createSignedUrls(proofs.map((p) => p.path), 600).then((r) => r.data ?? [])
+      : [],
+    o.shipping_proof_path
+      ? supabase.storage.from("shipping-proofs").createSignedUrl(o.shipping_proof_path, 600).then((r) => r.data?.signedUrl ?? null)
+      : null,
+  ]);
 
   return {
     id: o.id,
@@ -92,7 +94,18 @@ export async function getOrderForCustomer(orderId: string): Promise<OrderDetail 
       .sort((a, b) => a.created_at.localeCompare(b.created_at))
       .map((e) => ({ toStatus: e.to_status, actor: e.actor, note: e.note, createdAt: e.created_at })),
     proofs: proofs.map((p, i) => ({ url: signed[i]?.signedUrl ?? "", createdAt: p.created_at })).filter((p) => p.url),
+    shippingProofUrl: shipping,
   };
+}
+
+/** Pedido del usuario con sesión; null si no existe o es de otra persona (RLS). */
+export async function getOrderForCustomer(orderId: string): Promise<OrderDetail | null> {
+  if (!UUID.test(orderId)) return null;
+  const supabase = await createServerSupabase();
+  const uid = await currentUserId(supabase);
+  if (!uid) return null;
+  // Filtro explícito por dueño: con RLS, una cuenta admin vería pedidos ajenos como propios.
+  return fetchOrderDetail(supabase, orderId, uid);
 }
 
 export type PaymentMethod = { name: string; qrUrl: string; accountHolder: string | null };

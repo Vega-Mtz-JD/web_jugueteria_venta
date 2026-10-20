@@ -10,5 +10,11 @@ export function safeRedirectPath(value: string | null | undefined): string {
 
 /** Rutas que exigen sesión. */
 export function isProtectedPath(pathname: string): boolean {
-  return pathname === "/checkout" || pathname === "/pedidos" || pathname.startsWith("/pedidos/");
+  return (
+    pathname === "/checkout" ||
+    pathname === "/pedidos" ||
+    pathname.startsWith("/pedidos/") ||
+    pathname === "/panel" ||
+    pathname.startsWith("/panel/")
+  );
 }

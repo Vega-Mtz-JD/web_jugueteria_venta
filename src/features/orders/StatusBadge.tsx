@@ -8,10 +8,14 @@ const TONE = {
   bad: "bg-rojo/12 text-rojo",
 };
 
-export function StatusBadge({ status }: { status: OrderStatus }) {
+export function StatusBadge({
+  status,
+  labels = STATUS_LABEL,
+  ...props
+}: { status: OrderStatus; labels?: Record<OrderStatus, string> } & React.ComponentProps<"span">) {
   return (
-    <span className={cn("inline-flex h-7 items-center rounded-full px-3 text-sm font-semibold", TONE[STATUS_TONE[status]])}>
-      {STATUS_LABEL[status]}
+    <span {...props} className={cn("inline-flex h-7 items-center rounded-full px-3 text-sm font-semibold", TONE[STATUS_TONE[status]])}>
+      {labels[status]}
     </span>
   );
 }

@@ -73,12 +73,16 @@ test.describe("checkout", () => {
     expect(await ordersOf(user.id)).toHaveLength(1);
   });
 
-  test("si otro se llevó el stock, avisa y ajusta el carrito", async ({ page }) => {
+  test("si otro se llevó el stock, avisa y ajusta el carrito", async ({ page }, testInfo) => {
+    // Cambia el stock de un producto del seed: en PC y celular a la vez se pisarían.
+    test.skip(testInfo.project.name !== "desktop", "toca stock compartido del seed");
     await loginAsNewUser(page);
     await addToCart(page, "hockey-de-mesa");
     await page.goto("/checkout");
     await page.getByLabel("Celular").fill("71234567");
     await page.getByRole("radio", { name: /Recojo en tienda/ }).check();
+    // El resumen ya trajo precio y stock: recién ahora "otro" se lleva la última unidad.
+    await expect(page.getByTestId("checkout-summary")).toContainText("Hockey de mesa");
     await setProduct("hockey-de-mesa", { stock: 0 });
     try {
       await page.getByRole("button", { name: "Continuar al pago" }).click();

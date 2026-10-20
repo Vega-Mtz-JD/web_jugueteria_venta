@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDownIcon, LogOutIcon, PackageIcon, UserIcon } from "lucide-react";
+import { ChevronDownIcon, LayoutDashboardIcon, LogOutIcon, PackageIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useTransition } from "react";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "./actions";
 
-export function UserMenu({ name, email }: { name: string; email: string }) {
+export function UserMenu({ name, email, isAdmin = false }: { name: string; email: string; isAdmin?: boolean }) {
   const [pending, startTransition] = useTransition();
   const firstName = name.split(" ")[0];
   return (
@@ -26,6 +26,14 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
       <DropdownMenuContent align="end" className="w-56 bg-papel">
         <DropdownMenuLabel className="truncate font-normal text-muted-foreground">{email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {isAdmin && (
+          <DropdownMenuItem asChild>
+            <Link href="/panel">
+              <LayoutDashboardIcon aria-hidden />
+              Panel
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/pedidos">
             <PackageIcon aria-hidden />

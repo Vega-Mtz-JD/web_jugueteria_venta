@@ -14,5 +14,5 @@ export function LoginLink() {
 export async function HeaderAccount() {
   const user = await getSessionUser();
   if (!user) return <LoginLink />;
-  return <UserMenu name={user.fullName ?? user.email} email={user.email} />;
+  return <UserMenu name={user.fullName ?? user.email} email={user.email} isAdmin={user.isAdmin} />;
 }
