@@ -200,7 +200,8 @@ as $$
   update public.notification_outbox n
   set sent_at = case when p_error is null then now() end,
       last_error = coalesce(left(p_error, 500), n.last_error),
-      locked_until = case when p_error is null then n.locked_until end
+      -- Tras un error espera 1 minuto por intento (si no, la misma vuelta gastaría los 5 intentos).
+      locked_until = case when p_error is null then n.locked_until else now() + interval '1 minute' * n.attempts end
   where n.id = p_id;
 $$;
 

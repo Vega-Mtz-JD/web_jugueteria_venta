@@ -29,6 +29,9 @@ await call("orders?id=not.is.null", { method: "DELETE" });
 // Lo que crean las pruebas del panel: ventas manuales y productos propios (los del seed son is_sample).
 await call("manual_sales?id=not.is.null", { method: "DELETE" });
 await call("products?is_sample=eq.false", { method: "DELETE" });
+// Las pruebas crean un admin nuevo cada vez y cada aviso de pago escribe a todos: sin esto, cada corrida es más lenta.
+await call("profiles?role=eq.admin", { method: "PATCH", body: JSON.stringify({ role: "customer" }) });
+await call("push_subscriptions?id=not.is.null", { method: "DELETE" });
 for (const [slug, stock] of Object.entries(SEED_STOCK)) {
   await call(`products?slug=eq.${slug}`, { method: "PATCH", body: JSON.stringify({ stock, is_active: true }) });
 }

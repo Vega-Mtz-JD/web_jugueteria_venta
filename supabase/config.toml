@@ -393,8 +393,19 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-# [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+# SOLO LOCAL (Docker): la función "notify" manda los correos a Mailpit y usa claves VAPID de prueba.
+# En la nube los secretos reales se ponen con `npx supabase secrets set` (docs/hosting.md).
+[edge_runtime.secrets]
+NOTIFY_SECRET = "local-notify-secret"
+SMTP_HOST = "inbucket"
+SMTP_PORT = "1025"
+SMTP_SECURE = "false"
+SMTP_USER = ""
+SMTP_PASS = ""
+MAIL_FROM = "Ludiq <avisos@ludiq.local>"
+SITE_URL = "http://localhost:3000"
+VAPID_PUBLIC_KEY = "BM4K8F4j42pZEpfrVuahZgIlZk5XpTilRc-efwetiXt9ZZ3e6LwDwa-CmfQUxhz0oYok_coxAhDh_BCbhO0qtwY"
+VAPID_PRIVATE_KEY = "J546XfFmydPzv_UbbybMNr-o9rXz8e6Cv7Pmy4YIZ8s"
 
 [analytics]
 enabled = true
@@ -423,3 +434,7 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# Avisos: la protege su propio secreto (Authorization: Bearer NOTIFY_SECRET), no el JWT de Supabase.
+[functions.notify]
+verify_jwt = false

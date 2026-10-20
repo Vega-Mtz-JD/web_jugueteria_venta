@@ -1,8 +1,7 @@
 "use server";
 
-import { updateTag } from "next/cache";
 import { z } from "zod";
-import { CATALOG_TAG } from "@/features/catalog/cached";
+import { invalidateCatalog } from "@/features/catalog/invalidate";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { adminErrorMessage } from "./errors";
 import { isAdminSession } from "./guard";
@@ -49,7 +48,7 @@ export async function saveProductAction(
     // El stock no se edita aquí (va por contar estante o ±) y la dirección web no cambia: los enlaces compartidos siguen sirviendo.
     const { error } = await supabase.from("products").update(row).eq("id", productId);
     if (error) return { error: "No pudimos guardar el producto. Vuelve a intentarlo." };
-    updateTag(CATALOG_TAG);
+    invalidateCatalog();
     return { ok: true, id: productId };
   }
 
@@ -63,7 +62,7 @@ export async function saveProductAction(
       .select("id")
       .single();
     if (!error) {
-      updateTag(CATALOG_TAG);
+      invalidateCatalog();
       return { ok: true, id: data.id };
     }
     if (error.code !== "23505") break; // otra persona creó la misma dirección a la vez: probar la siguiente
@@ -81,7 +80,7 @@ export async function deleteProductAction(productId: string): Promise<Result<{ o
     const paths = storagePaths((images ?? []).map((i) => i.path));
     if (paths.length) await supabase.storage.from("product-images").remove(paths);
   }
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true, outcome: data === "borrado" ? "borrado" : "oculto" };
 }
 
@@ -99,7 +98,7 @@ export async function addProductPhotoAction(productId: string, path: string): Pr
   const sortOrder = Math.max(-1, ...(current ?? []).map((c) => c.sort_order)) + 1;
   const { error } = await supabase.from("product_images").insert({ product_id: productId, path, sort_order: sortOrder });
   if (error) return { error: "No pudimos guardar la foto. Vuelve a intentarlo." };
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -111,7 +110,7 @@ export async function removeProductPhotoAction(imageId: string): Promise<Result>
   if (error || !data) return { error: "No pudimos quitar la foto. Vuelve a intentarlo." };
   const paths = storagePaths([data.path]);
   if (paths.length) await supabase.storage.from("product-images").remove(paths);
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -126,7 +125,7 @@ export async function makeMainPhotoAction(imageId: string): Promise<Result> {
   const ordered = [imageId, ...(all ?? []).map((i) => i.id).filter((id) => id !== imageId)];
   const results = await Promise.all(ordered.map((id, i) => supabase.from("product_images").update({ sort_order: i }).eq("id", id)));
   if (results.some((r) => r.error)) return { error: "No pudimos cambiar la foto principal. Vuelve a intentarlo." };
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -135,7 +134,7 @@ export async function adjustStockAction(productId: string, delta: number): Promi
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("admin_adjust_stock", { p_product_id: productId, p_delta: delta });
   if (error) return { error: adminErrorMessage(error, "No pudimos cambiar el stock. Vuelve a intentarlo.") };
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true, stock: data };
 }
 
@@ -146,7 +145,7 @@ export async function countShelfAction(productId: string, counted: number): Prom
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("admin_count_shelf", { p_product_id: productId, p_counted: counted });
   if (error) return { error: adminErrorMessage(error, "No pudimos guardar el conteo. Vuelve a intentarlo.") };
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true, stock: data };
 }
 
@@ -174,7 +173,7 @@ export async function recordManualSaleAction(input: z.input<typeof manualSaleInp
     p_request_id: v.requestId,
   });
   if (error) return { error: adminErrorMessage(error, "No pudimos registrar la venta. Vuelve a intentarlo.") };
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -183,6 +182,6 @@ export async function voidManualSaleAction(saleId: string): Promise<Result> {
   const supabase = await createServerSupabase();
   const { error } = await supabase.rpc("admin_void_manual_sale", { p_sale_id: saleId });
   if (error) return { error: adminErrorMessage(error, "No pudimos anular la venta. Vuelve a intentarlo.") };
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }

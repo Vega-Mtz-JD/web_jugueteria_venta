@@ -58,8 +58,12 @@ test.describe("ajustes del panel", () => {
     await store.getByLabel("WhatsApp").fill("+591 7111 2233");
     await store.getByRole("button", { name: "Guardar" }).click();
     await expect(store.getByRole("status")).toHaveText("Guardado");
-    await page.goto("/");
-    await expect(page.getByRole("contentinfo").getByRole("link", { name: /WhatsApp/ })).toHaveAttribute("href", /^https:\/\/wa\.me\/59171112233/);
+    // Unos segundos de margen: una regeneración de la portada que empezó antes de guardar (al ingresar)
+    // puede terminar después; invalidateCatalog la vuelve a invalidar a los 3 s.
+    await expect(async () => {
+      await page.goto("/");
+      await expect(page.getByRole("contentinfo").getByRole("link", { name: /WhatsApp/ })).toHaveAttribute("href", /^https:\/\/wa\.me\/59171112233/, { timeout: 1000 });
+    }).toPass({ timeout: 15000 });
   });
 
   test("un QR nuevo de Yape aparece en la página de pago", async ({ page, browser }) => {
