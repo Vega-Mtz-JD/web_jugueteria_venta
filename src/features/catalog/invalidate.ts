@@ -13,8 +13,13 @@ export const LATE_INVALIDATION_MS = 3000;
  */
 export function invalidateCatalog(): void {
   updateTag(CATALOG_TAG);
-  after(async () => {
-    await new Promise((resolve) => setTimeout(resolve, LATE_INVALIDATION_MS));
-    revalidateTag(CATALOG_TAG, { expire: 0 });
-  });
+  // Defensa sin probar del todo (ver el registro del plan 4): si algún día sobra, se puede quitar.
+  try {
+    after(async () => {
+      await new Promise((resolve) => setTimeout(resolve, LATE_INVALIDATION_MS));
+      revalidateTag(CATALOG_TAG, { expire: 0 });
+    });
+  } catch {
+    // La plataforma no permite after() (sin waitUntil): el guardado ya invalidó al momento.
+  }
 }

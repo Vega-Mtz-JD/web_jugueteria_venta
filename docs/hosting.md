@@ -105,7 +105,10 @@ Cómo funciona: cada cambio de estado de un pedido deja un aviso en `notificatio
 5. Netlify → *Environment variables*: `NEXT_PUBLIC_VAPID_PUBLIC_KEY` = la clave pública (no es secreta). Se aplica en el siguiente despliegue.
 6. En cada celular o PC: Panel → Más → **Activar avisos** → **Enviar aviso de prueba**. En iPhone, primero se instala el panel en la pantalla de inicio.
 
-**Si un aviso no llega:** *Edge Functions → notify → Logs* muestra el error (p. ej. `535` = contraseña de Gmail). Los pendientes: `select kind, attempts, last_error from notification_outbox where sent_at is null order by id desc;`. Gmail permite unos 500 correos por día.
+**Si un aviso no llega:**
+- `attempts = 0` en los pendientes significa que la función no recibe las llamadas (no desplegada o Vault vacío). Ver `select status_code, content from net._http_response order by created desc limit 5;`.
+- Tras arreglar la causa (p. ej. la contraseña de Gmail), reenviar lo del último día que agotó sus 5 intentos: `update notification_outbox set attempts = 0, locked_until = null where sent_at is null and created_at > now() - interval '1 day';`. Los avisos de más de 24 horas (y "pedido recibido" de más de 60 minutos) se omiten solos para no llegar tarde.
+- *Edge Functions → notify → Logs* muestra el error (p. ej. `535` = contraseña de Gmail). Los pendientes: `select kind, attempts, last_error from notification_outbox where sent_at is null order by id desc;`. Gmail permite unos 500 correos por día.
 
 ## Respaldos
 

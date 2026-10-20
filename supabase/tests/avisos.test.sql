@@ -86,6 +86,25 @@ update public.orders set status_changed_at = now() - interval '2 hours' where id
 select public.expire_orders();
 select is(pg_temp.kinds('t.o4'), 'pedido_recibido/cliente,cancelado/cliente', 'el vencimiento automático avisa al comprador');
 
+-- El notificador tiene tiempo para un lote real de correos (Gmail: 1–3 s por correo) ------------------------
+select pg_temp.as_role('postgres');
+select public.wake_notifier();
+select is((select timeout_milliseconds from net.http_request_queue order by id desc limit 1), 60000, 'pg_net espera hasta 60 s a la función');
+
+-- Avisos atrasados (la función estuvo caída): no se manda «paga en 60 minutos» a un pedido viejo -------------
+select pg_temp.pedido('t.o6');
+select pg_temp.as_role('postgres');
+update public.notification_outbox set created_at = now() - interval '2 hours' where order_id = current_setting('t.o6')::uuid;
+insert into public.notification_outbox (order_id, kind, audience, created_at)
+  values (current_setting('t.o6')::uuid, 'pago_confirmado', 'cliente', now() - interval '25 hours');
+select pg_temp.as_role('service_role');
+select is((select count(*)::int from jsonb_array_elements(public.claim_notifications(50)) e where e -> 'order' ->> 'id' = current_setting('t.o6')),
+  0, 'los avisos atrasados no se envían');
+select pg_temp.as_role('postgres');
+select is((select count(*)::int from public.notification_outbox where order_id = current_setting('t.o6')::uuid and sent_at is not null and last_error like 'Omitido%'),
+  2, 'quedan marcados como omitidos, con el motivo');
+update public.notification_outbox set attempts = 0, locked_until = null where sent_at is null; -- devolver lo que tomó este claim
+
 -- Sin secretos en Vault (o sin función) el pedido se crea igual ----------------------------------------------
 delete from vault.secrets where name in ('notify_url', 'notify_secret');
 select lives_ok($$select pg_temp.pedido('t.o5')$$, 'sin notificador configurado el pedido se crea igual');

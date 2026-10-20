@@ -100,7 +100,8 @@ begin
     url := v_url,
     body := '{}'::jsonb,
     headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_secret),
-    timeout_milliseconds := 5000
+    -- La función manda los correos uno tras otro (Gmail: 1–3 s cada uno): 5 s cortaba lotes reales.
+    timeout_milliseconds := 60000
   );
 exception when others then
   raise warning 'no se pudo despertar al notificador: %', sqlerrm;
@@ -138,6 +139,14 @@ as $$
 declare
   v_result jsonb;
 begin
+  -- Avisos atrasados (la función estuvo caída o sin configurar): no se envían tarde. Un «paga en los
+  -- próximos 60 minutos» de hace horas confunde al comprador; cualquier aviso de más de un día, igual.
+  update public.notification_outbox n
+  set sent_at = now(), last_error = 'Omitido: llegó tarde (' || n.kind || ')'
+  where n.sent_at is null
+    and ((n.kind = 'pedido_recibido' and n.created_at < now() - interval '60 minutes')
+         or n.created_at < now() - interval '24 hours');
+
   with picked as (
     select n.id from public.notification_outbox n
     where n.sent_at is null and n.attempts < 5 and (n.locked_until is null or n.locked_until < now())

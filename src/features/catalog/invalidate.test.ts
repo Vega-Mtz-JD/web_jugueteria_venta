@@ -4,7 +4,13 @@ const updateTag = vi.fn();
 const revalidateTag = vi.fn();
 const afterCallbacks: (() => Promise<void>)[] = [];
 vi.mock("next/cache", () => ({ updateTag: (t: string) => updateTag(t), revalidateTag: (t: string, p: unknown) => revalidateTag(t, p), cacheLife: () => {}, cacheTag: () => {} }));
-vi.mock("next/server", () => ({ after: (cb: () => Promise<void>) => afterCallbacks.push(cb) }));
+let afterThrows = false;
+vi.mock("next/server", () => ({
+  after: (cb: () => Promise<void>) => {
+    if (afterThrows) throw new Error("`after` was called without waitUntil");
+    afterCallbacks.push(cb);
+  },
+}));
 
 const { invalidateCatalog, LATE_INVALIDATION_MS } = await import("./invalidate");
 
@@ -29,5 +35,15 @@ describe("invalidateCatalog", () => {
     await vi.advanceTimersByTimeAsync(LATE_INVALIDATION_MS);
     await late;
     expect(revalidateTag).toHaveBeenCalledWith("catalogo", { expire: 0 });
+  });
+
+  it("si la plataforma no permite after(), el guardado no falla (ya se invalidó al momento)", () => {
+    afterThrows = true;
+    try {
+      expect(() => invalidateCatalog()).not.toThrow();
+      expect(updateTag).toHaveBeenCalledWith("catalogo");
+    } finally {
+      afterThrows = false;
+    }
   });
 });
