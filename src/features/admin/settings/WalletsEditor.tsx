@@ -6,6 +6,8 @@ import { compressImage, extensionFor, validateImageFile } from "@/lib/images-com
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import type { SettingsData } from "../queries";
 import { deleteWalletAction, saveWalletAction } from "../settings-actions";
+import { uploadErrorMessage } from "../call-action";
+import { ConfirmButton } from "../ConfirmButton";
 import { control, field, SaveStatus, useSave } from "./shared";
 
 type Wallet = SettingsData["wallets"][number];
@@ -42,7 +44,7 @@ function WalletRow({ wallet }: { wallet: Wallet }) {
       const f = new FormData(form.current ?? undefined);
       run(() => saveWalletAction({ id: wallet.id, ...values(f), qrPath }));
     } catch (e) {
-      setStatus({ ok: false, text: e instanceof Error ? e.message : "No pudimos subir el QR." });
+      setStatus({ ok: false, text: uploadErrorMessage(e) });
     } finally {
       setUploading(false);
     }
@@ -98,15 +100,7 @@ function WalletRow({ wallet }: { wallet: Wallet }) {
             <Button type="submit" variant="secondary" disabled={pending || uploading}>
               Guardar
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-rojo hover:bg-rojo/10"
-              disabled={pending || uploading}
-              onClick={() => run(() => deleteWalletAction(wallet.id), () => "Borrada")}
-            >
-              Borrar
-            </Button>
+            <ConfirmButton label="Borrar" confirmLabel="Sí, borrar" question="¿Borrar esta billetera y su QR?" disabled={pending || uploading} onConfirm={() => run(() => deleteWalletAction(wallet.id), () => "Borrada")} />
             <SaveStatus status={status} />
           </div>
         </div>
@@ -134,7 +128,7 @@ export function WalletsEditor({ wallets }: { wallets: Wallet[] }) {
         },
       );
     } catch (e) {
-      setStatus({ ok: false, text: e instanceof Error ? e.message : "No pudimos subir el QR." });
+      setStatus({ ok: false, text: uploadErrorMessage(e) });
     } finally {
       setUploading(false);
     }

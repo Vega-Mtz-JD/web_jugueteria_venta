@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import type { OrderStatus } from "@/features/orders/status";
 import { compressProof, extensionFor, validateProofFile } from "@/features/orders/compress";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { callAction, uploadErrorMessage } from "../call-action";
 import { setOrderStatusAction } from "../order-actions";
 import { ACTION_TARGET, availableActions, type Action, type DeliveryMethod } from "../transitions";
 
@@ -50,7 +51,7 @@ export function OrderActions({ orderId, status, method }: { orderId: string; sta
 
   function run(action: Action, extra: Extra = {}, onError = setError) {
     startTransition(async () => {
-      const result = await setOrderStatusAction({ orderId, expectedFrom: status, to: ACTION_TARGET[action], ...extra });
+      const result = await callAction(() => setOrderStatusAction({ orderId, expectedFrom: status, to: ACTION_TARGET[action], ...extra }));
       if ("error" in result) {
         onError(result.error);
         return;
@@ -216,7 +217,7 @@ function ShipDialog({
         if (storageError) throw new Error("No pudimos subir la foto. Revisa tu conexión y vuelve a intentarlo.");
         extra.shippingProofPath = path;
       } catch (e) {
-        onError(e instanceof Error ? e.message : "No pudimos subir la foto.");
+        onError(uploadErrorMessage(e));
         return;
       } finally {
         setUploading(false);

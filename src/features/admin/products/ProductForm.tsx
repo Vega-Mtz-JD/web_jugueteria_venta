@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { callAction } from "../call-action";
 import { saveProductAction } from "../product-actions";
 import { centsToBsText, type ProductInput } from "../product-schema";
 import type { AdminProductDetail } from "../queries";
@@ -61,7 +62,7 @@ export function ProductForm({ product, categories }: { product?: AdminProductDet
       isActive: form.get("isActive") === "on",
     };
     startTransition(async () => {
-      const result = await saveProductAction(product?.id ?? null, input);
+      const result = await callAction(() => saveProductAction(product?.id ?? null, input));
       if ("error" in result) {
         setErrors("fieldErrors" in result ? result.fieldErrors : {});
         setMessage({ ok: false, text: result.error });

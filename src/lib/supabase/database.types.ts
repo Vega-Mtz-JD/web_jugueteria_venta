@@ -53,14 +53,14 @@ export type Database = {
                   ]
                 },"manual_sales": {
                   Row: {
-                    "channel": string,"created_at": string,"created_by": string,"id": string,"note": string | null,"product_id": string,"quantity": number,"unit_price_cents": number,"voided_at": string | null,"voided_by": string | null
+                    "channel": string,"created_at": string,"created_by": string,"id": string,"note": string | null,"product_id": string,"quantity": number,"request_id": string | null,"unit_price_cents": number,"voided_at": string | null,"voided_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "channel": string,"created_at"?: string,"created_by": string,"id"?: string,"note"?: string | null,"product_id": string,"quantity": number,"unit_price_cents": number,"voided_at"?: string | null,"voided_by"?: string | null
+                    "channel": string,"created_at"?: string,"created_by": string,"id"?: string,"note"?: string | null,"product_id": string,"quantity": number,"request_id"?: string | null,"unit_price_cents": number,"voided_at"?: string | null,"voided_by"?: string | null
                   }
                   Update: {
-                    "channel"?: string,"created_at"?: string,"created_by"?: string,"id"?: string,"note"?: string | null,"product_id"?: string,"quantity"?: number,"unit_price_cents"?: number,"voided_at"?: string | null,"voided_by"?: string | null
+                    "channel"?: string,"created_at"?: string,"created_by"?: string,"id"?: string,"note"?: string | null,"product_id"?: string,"quantity"?: number,"request_id"?: string | null,"unit_price_cents"?: number,"voided_at"?: string | null,"voided_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -326,7 +326,7 @@ isOneToOne: false
             }[]
                            },
 "admin_record_manual_sale":
-{ Args: { "p_channel": string,"p_note"?: string,"p_product_id": string,"p_quantity": number,"p_unit_price_cents": number }; Returns: string
+{ Args: { "p_channel": string,"p_note"?: string,"p_product_id": string,"p_quantity": number,"p_request_id"?: string,"p_unit_price_cents": number }; Returns: string
                            },
 "admin_reserved_units":
 { Args: Record<PropertyKey, never>; Returns: {

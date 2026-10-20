@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { callAction } from "../call-action";
 import { countShelfAction } from "../product-actions";
 
 /** "Contar estante": el dueño escribe lo que ve y la base descuenta lo apartado en pedidos. */
@@ -27,7 +28,7 @@ export function CountShelfDialog({
       return setError("Escribe cuántas unidades contaste");
     }
     startTransition(async () => {
-      const result = await countShelfAction(product.id, counted);
+      const result = await callAction(() => countShelfAction(product.id, counted));
       if ("error" in result) return setError(result.error);
       setError(null);
       onOpenChange(false);

@@ -11,6 +11,7 @@ import {
   savePointAction,
   saveZoneAction,
 } from "../settings-actions";
+import { ConfirmButton } from "../ConfirmButton";
 import { control, field, SaveStatus, useSave } from "./shared";
 
 const MODE_LABEL = { domicilio: "A domicilio", punto: "Punto de encuentro" } as const;
@@ -72,9 +73,7 @@ function ZoneRow({ zone }: { zone: SettingsData["zones"][number] }) {
           <Button type="submit" variant="secondary" disabled={pending}>
             Guardar
           </Button>
-          <Button type="button" variant="ghost" className="text-rojo hover:bg-rojo/10" disabled={pending} onClick={() => run(() => deleteZoneAction(zone.id), deleted)}>
-            Borrar
-          </Button>
+          <ConfirmButton label="Borrar" confirmLabel="Sí, borrar" disabled={pending} onConfirm={() => run(() => deleteZoneAction(zone.id), deleted)} />
           <SaveStatus status={status} />
         </div>
       </form>
@@ -153,9 +152,7 @@ function PointRow({ point }: { point: SettingsData["points"][number] }) {
           <Button type="submit" variant="secondary" disabled={pending}>
             Guardar
           </Button>
-          <Button type="button" variant="ghost" className="text-rojo hover:bg-rojo/10" disabled={pending} onClick={() => run(() => deletePointAction(point.id), deleted)}>
-            Borrar
-          </Button>
+          <ConfirmButton label="Borrar" confirmLabel="Sí, borrar" disabled={pending} onConfirm={() => run(() => deletePointAction(point.id), deleted)} />
           <SaveStatus status={status} />
         </div>
       </form>
@@ -225,9 +222,7 @@ function CategoryRow({ category }: { category: SettingsData["categories"][number
           <Button type="submit" variant="secondary" disabled={pending}>
             Guardar
           </Button>
-          <Button type="button" variant="ghost" className="text-rojo hover:bg-rojo/10" disabled={pending} onClick={() => run(() => deleteCategoryAction(category.id), () => "Borrada")}>
-            Borrar
-          </Button>
+          <ConfirmButton label="Borrar" confirmLabel="Sí, borrar" disabled={pending} onConfirm={() => run(() => deleteCategoryAction(category.id), () => "Borrada")} />
           <SaveStatus status={status} />
         </div>
       </form>

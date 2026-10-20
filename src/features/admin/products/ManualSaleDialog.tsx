@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { callAction } from "../call-action";
 import { recordManualSaleAction } from "../product-actions";
 import { bsTextToCents, centsToBsText } from "../product-schema";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,8 @@ export function ManualSaleDialog({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [channel, setChannel] = useState<"tienda" | "whatsapp">("tienda");
+  // Un id por venta: si se pierde la respuesta y se vuelve a tocar, la base devuelve la misma venta.
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
 
   function submit(form: FormData) {
     const unitPriceCents = bsTextToCents(String(form.get("price") ?? ""));
@@ -32,15 +35,19 @@ export function ManualSaleDialog({
     if (unitPriceCents === null) return setError("Escribe el precio de venta");
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) return setError("La cantidad debe ser entre 1 y 100");
     startTransition(async () => {
-      const result = await recordManualSaleAction({
+      const result = await callAction(() =>
+        recordManualSaleAction({
         productId: product.id,
         quantity,
         channel,
         unitPriceCents,
         note: String(form.get("note") ?? ""),
-      });
+        requestId,
+        }),
+      );
       if ("error" in result) return setError(result.error);
       setError(null);
+      setRequestId(crypto.randomUUID());
       onOpenChange(false);
       router.refresh();
     });
@@ -51,6 +58,7 @@ export function ManualSaleDialog({
       open={open}
       onOpenChange={(o) => {
         if (!o) setError(null);
+        if (!o) setRequestId(crypto.randomUUID());
         onOpenChange(o);
       }}
     >

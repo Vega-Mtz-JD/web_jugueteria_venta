@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import type { SettingsData } from "../queries";
 import { deleteSampleProductsAction, setAdminAction } from "../settings-actions";
+import { ConfirmButton } from "../ConfirmButton";
 import { control, SaveStatus, useSave } from "./shared";
 
 export function AdminsEditor({ admins, me }: { admins: SettingsData["admins"]; me: string }) {
@@ -21,9 +22,7 @@ export function AdminsEditor({ admins, me }: { admins: SettingsData["admins"]; m
               </span>
               <span className="block break-all text-sm text-muted-foreground">{a.email}</span>
             </span>
-            <Button variant="ghost" className="text-rojo hover:bg-rojo/10" disabled={pending} onClick={() => run(() => setAdminAction(a.email, false), () => "Se quitó el acceso")}>
-              Quitar
-            </Button>
+            <ConfirmButton label="Quitar" confirmLabel="Sí, quitar" question="¿Quitarle el acceso al panel?" disabled={pending} onConfirm={() => run(() => setAdminAction(a.email, false), () => "Se quitó el acceso")} />
           </li>
         ))}
       </ul>

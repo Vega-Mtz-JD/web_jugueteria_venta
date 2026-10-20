@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { callAction } from "../call-action";
 import { deleteProductAction } from "../product-actions";
 
 /** Borra el producto; si ya tuvo ventas, la base solo lo oculta. */
@@ -36,7 +37,7 @@ export function DeleteProductButton({ productId }: { productId: string }) {
           disabled={pending}
           onClick={() =>
             startTransition(async () => {
-              const result = await deleteProductAction(productId);
+              const result = await callAction(() => deleteProductAction(productId));
               if ("error" in result) {
                 setMessage(result.error);
               } else if (result.outcome === "borrado") {

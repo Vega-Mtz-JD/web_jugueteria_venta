@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { callAction } from "../call-action";
 import { voidManualSaleAction } from "../product-actions";
 import type { StockMovement } from "../queries";
 
@@ -73,7 +74,7 @@ function VoidSale({ saleId }: { saleId: string }) {
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
-            const result = await voidManualSaleAction(saleId);
+            const result = await callAction(() => voidManualSaleAction(saleId));
             if ("error" in result) setError(result.error);
             else router.refresh();
           })

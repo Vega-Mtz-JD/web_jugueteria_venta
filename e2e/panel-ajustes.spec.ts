@@ -29,6 +29,28 @@ async function customerPage(browser: Browser) {
 test.describe("ajustes del panel", () => {
   test.afterAll(restore);
 
+  test("borrar una billetera pide confirmación (un toque de más no quita el QR)", async ({ page }) => {
+    const admin = adminClient();
+    const { error } = await admin.from("payment_methods").insert({ name: "Billetera e2e", qr_path: "/samples/qr-yape.svg", sort_order: 99 });
+    if (error) throw error;
+    try {
+      await loginAsAdmin(page);
+      await page.goto("/panel/ajustes");
+      const wallet = page.getByRole("region", { name: "Billeteras QR" }).getByRole("listitem").filter({ has: page.getByLabel("Cambiar QR de Billetera e2e") });
+      await wallet.getByRole("button", { name: "Borrar" }).click();
+      await expect(wallet.getByRole("button", { name: "Sí, borrar" })).toBeVisible();
+      await wallet.getByRole("button", { name: "No" }).click();
+      await page.reload();
+      await expect(page.getByLabel("Cambiar QR de Billetera e2e")).toBeAttached();
+      const again = page.getByRole("region", { name: "Billeteras QR" }).getByRole("listitem").filter({ has: page.getByLabel("Cambiar QR de Billetera e2e") });
+      await again.getByRole("button", { name: "Borrar" }).click();
+      await again.getByRole("button", { name: "Sí, borrar" }).click();
+      await expect(page.getByLabel("Cambiar QR de Billetera e2e")).toHaveCount(0);
+    } finally {
+      await admin.from("payment_methods").delete().eq("name", "Billetera e2e");
+    }
+  });
+
   test("el WhatsApp nuevo se usa en el pie de la tienda", async ({ page }) => {
     await loginAsAdmin(page);
     await page.goto("/panel/ajustes");
@@ -101,7 +123,9 @@ test.describe("ajustes del panel", () => {
     await admins.getByRole("button", { name: "Agregar administrador" }).click();
     await expect(admins.getByRole("listitem").filter({ hasText: helper.email })).toBeVisible();
 
-    await admins.getByRole("listitem").filter({ hasText: me.email }).getByRole("button", { name: "Quitar" }).click();
+    const mine = admins.getByRole("listitem").filter({ hasText: me.email });
+    await mine.getByRole("button", { name: "Quitar" }).click();
+    await mine.getByRole("button", { name: "Sí, quitar" }).click();
     await expect(admins.getByRole("alert")).toHaveText("No puedes quitarte a ti mismo");
 
     const helperPage = await (await browser.newContext()).newPage();

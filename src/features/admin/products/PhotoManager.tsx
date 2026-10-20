@@ -5,8 +5,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { compressImage, extensionFor, validateImageFile } from "@/lib/images-compress";
+import { compressProductPhoto, extensionFor, validateImageFile } from "@/lib/images-compress";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { callAction, NETWORK_ERROR, uploadErrorMessage } from "../call-action";
 import { addProductPhotoAction, makeMainPhotoAction, removeProductPhotoAction } from "../product-actions";
 
 const MAX_PHOTOS = 5;
@@ -36,16 +37,16 @@ export function PhotoManager({ productId, productName, images }: { productId: st
       }
       try {
         setStatus("Subiendo foto…");
-        const photo = await compressImage(file);
+        const photo = await compressProductPhoto(file);
         const path = `${productId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extensionFor(photo.type)}`;
         const { error: storageError } = await createBrowserSupabase()
           .storage.from("product-images")
           .upload(path, photo, { contentType: photo.type, upsert: false });
-        if (storageError) throw new Error("No pudimos subir la foto. Revisa tu conexión y vuelve a intentarlo.");
-        const result = await addProductPhotoAction(productId, path);
+        if (storageError) throw new Error(NETWORK_ERROR);
+        const result = await callAction(() => addProductPhotoAction(productId, path));
         if ("error" in result) throw new Error(result.error);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "No pudimos subir la foto.");
+        setError(uploadErrorMessage(e));
       }
     }
     setStatus(null);
@@ -54,7 +55,7 @@ export function PhotoManager({ productId, productName, images }: { productId: st
 
   function act(action: () => Promise<{ ok: true } | { error: string }>) {
     startTransition(async () => {
-      const result = await action();
+      const result = await callAction(action);
       if ("error" in result) setError(result.error);
       else {
         setError(null);

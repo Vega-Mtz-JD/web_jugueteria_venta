@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { callAction } from "../call-action";
 import { adjustStockAction } from "../product-actions";
 import { CountShelfDialog } from "./CountShelfDialog";
 import { ManualSaleDialog } from "./ManualSaleDialog";
@@ -21,7 +22,7 @@ export function StockControls({ product, full = false }: { product: Product; ful
 
   function adjust(delta: number) {
     startTransition(async () => {
-      const result = await adjustStockAction(product.id, delta);
+      const result = await callAction(() => adjustStockAction(product.id, delta));
       if ("error" in result) return setError(result.error);
       setError(null);
       router.refresh();
@@ -49,7 +50,8 @@ export function StockControls({ product, full = false }: { product: Product; ful
         <Button variant="secondary" size="icon" aria-label={`Sumar una unidad a ${product.name}`} disabled={pending} onClick={() => adjust(1)}>
           <PlusIcon aria-hidden />
         </Button>
-        <Button className="ml-1" onClick={() => setDialog("vendi")} disabled={pending || product.stock === 0}>
+        {/* Activo aunque el stock sea 0: la base explica qué pedido tiene la unidad o pide corregir el stock. */}
+        <Button className="ml-1" onClick={() => setDialog("vendi")} disabled={pending}>
           Vendí
         </Button>
         {full && (
@@ -60,7 +62,7 @@ export function StockControls({ product, full = false }: { product: Product; ful
       </div>
       {product.reserved > 0 && (
         <p className="text-sm font-medium text-[#6b5210]">
-          <Link href="/panel/pedidos?tab=entregar" className="underline-offset-4 hover:underline">
+          <Link href="/panel/pedidos?tab=historial" className="underline-offset-4 hover:underline">
             {reservedText(product.reserved, !full)}
           </Link>
         </p>

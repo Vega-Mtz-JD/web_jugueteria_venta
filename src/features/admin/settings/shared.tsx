@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
+import { callAction } from "../call-action";
 
 export const field = "grid gap-1.5 text-sm font-semibold";
 export const control =
@@ -28,7 +29,7 @@ export function useSave() {
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
   function run<T extends { ok: true } | { error: string }>(action: () => Promise<T>, onOk?: (r: Extract<T, { ok: true }>) => string | void) {
     startTransition(async () => {
-      const result = await action();
+      const result = await callAction(action);
       if ("error" in result) {
         setStatus({ ok: false, text: result.error });
         return;

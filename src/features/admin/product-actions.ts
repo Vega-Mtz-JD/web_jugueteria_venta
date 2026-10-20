@@ -154,8 +154,10 @@ const manualSaleInput = z.object({
   productId: z.uuid(),
   quantity: z.number().int().min(1, "La cantidad debe ser entre 1 y 100").max(100, "La cantidad debe ser entre 1 y 100"),
   channel: z.enum(["tienda", "whatsapp"]),
-  unitPriceCents: z.number().int().min(0, "Escribe el precio de venta").max(100_000_000, "Escribe el precio de venta"),
+  unitPriceCents: z.number().int().min(0, "Escribe el precio de venta").max(10_000_000, "Revisa el precio: el máximo es Bs 100.000 por unidad"),
   note: z.string().trim().max(200, "La nota puede tener hasta 200 letras").optional(),
+  /** Mismo id en un reintento (respuesta perdida): la base no registra la venta dos veces. */
+  requestId: z.uuid(),
 });
 
 export async function recordManualSaleAction(input: z.input<typeof manualSaleInput>): Promise<Result> {
@@ -169,6 +171,7 @@ export async function recordManualSaleAction(input: z.input<typeof manualSaleInp
     p_channel: v.channel,
     p_unit_price_cents: v.unitPriceCents,
     p_note: v.note || undefined,
+    p_request_id: v.requestId,
   });
   if (error) return { error: adminErrorMessage(error, "No pudimos registrar la venta. Vuelve a intentarlo.") };
   updateTag(CATALOG_TAG);
