@@ -13,7 +13,7 @@ export function PanelShell({ storeName, children }: { storeName: string; childre
         <span className="rounded-full bg-verde px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-crema">Panel</span>
       </header>
       <PanelNav />
-      <main id="contenido" tabIndex={-1} className="flex-1 px-4 pb-28 pt-6 outline-none sm:px-6 lg:pb-10 lg:pt-20">
+      <main id="contenido" tabIndex={-1} className="min-w-0 flex-1 px-4 pb-28 pt-6 outline-none sm:px-6 lg:pb-10 lg:pt-20">
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
     </div>
