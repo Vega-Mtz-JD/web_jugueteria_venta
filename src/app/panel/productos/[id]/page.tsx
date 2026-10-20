@@ -22,8 +22,9 @@ async function ProductEditor({ params, searchParams }: PageProps<"/panel/product
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-3xl font-extrabold tracking-tight">{product.name}</h1>
+        {/* Sin precarga: precargar la ficha mientras se guarda puede dejar en caché el precio viejo. */}
         {product.isActive && (
-          <Link href={`/producto/${product.slug}`} className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-verde underline-offset-4 hover:underline">
+          <Link href={`/producto/${product.slug}`} prefetch={false} className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-verde underline-offset-4 hover:underline">
             Ver en la tienda
             <ExternalLinkIcon aria-hidden className="size-4" />
           </Link>
