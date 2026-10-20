@@ -156,7 +156,7 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 |---|---|---|
 | 1 | Fundaciones y catálogo público (portada, catálogo, ficha, SEO, CI, Netlify) | ✅ En producción: https://ludiq-lapaz.netlify.app (PR #1) |
 | 2 | Cuentas, carrito, checkout, pago QR y mis pedidos | ✅ En producción (PR #2). Compra real probada por Diego en la vista previa; SMTP con Gmail funcionando |
-| 3A | Panel para vender: portada con números clave, pedidos (revisar, confirmar, rechazar, enviar, reembolsar), productos con fotos, stock con historial, "Vendí", contar estante, ajustes y administradores; instalable | ✅ Programado y probado (PR #3); falta `db push`, prueba en Android y fusión |
+| 3A | Panel para vender: portada con números clave, pedidos (revisar, confirmar, rechazar, enviar, reembolsar), productos con fotos, stock con historial, "Vendí", contar estante, ajustes y administradores; instalable | ✅ En producción (PR #3). Probado por Diego en su Android (panel instalado); migraciones `20261020000001`–`…0005` en la nube; Diego es el primer admin |
 | 3B | Inventario y proveedores (compras que suben stock, costos y ganancia) | Por planificar (fines de noviembre) |
 | 4 | Avisos (Web Push al dueño, correos al comprador), respaldos y consulta diaria contra la pausa | Por planificar |
 | 5 | Dashboard con gráficos (ventas, inventario, ganancia, clientes) | Por planificar (primera quincena de diciembre) |
@@ -179,7 +179,15 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
   - el CI hace el build dos veces;
   - `shadcn` está en `dependencies`;
   - `metadataBase` usa una dirección de respaldo si falta `NEXT_PUBLIC_SITE_URL`.
-- **Plan 3A** (decisiones y detalles diferidos en el PR #3):
+- **Plan 3A** (decisiones en el PR #3; detalles menores para el plan 3B):
+  - fotos de más de 10 MB se rechazan antes de comprimir (50/108 MP);
+  - archivos huérfanos en Storage en algunos errores de subida;
+  - la sección "Productos de prueba" no desaparece después de usarla;
+  - el aviso de apartadas puede nombrar un pedido ya pagado;
+  - faltan pgTAP de storage.objects para compradores y de `admin_void_manual_sale` como comprador;
+  - en PC, pedidos sin vista de dos columnas (lista + detalle); historial limitado a 100;
+  - botón Atrás de Android con un diálogo abierto; botones de fotos de 40 px;
+  - "Ver la tienda" en Más todavía precarga la portada;
   - las pruebas de ajustes corren solo en PC (cambian datos de toda la tienda);
   - el nombre del panel instalado ("Ludiq · Panel") está fijo en `public/panel.webmanifest`;
   - las fotos se reordenan con "Hacer principal" (no arrastrando).
