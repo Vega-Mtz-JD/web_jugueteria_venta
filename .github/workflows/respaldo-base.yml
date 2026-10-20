@@ -6,8 +6,6 @@ on:
   schedule:
     - cron: "0 8 * * *" # 04:00 en La Paz
   workflow_dispatch:
-  push: # TEMPORAL: probar antes de fusionar (se quita antes del merge)
-    branches: [feat/plan-4-avisos]
 
 permissions:
   contents: read
