@@ -87,10 +87,13 @@ Cómo funciona: cada cambio de estado de un pedido deja un aviso en `notificatio
 
 **Puesta en marcha en la nube (una sola vez):**
 
+> **Nunca** poner secretos en `[edge_runtime.secrets]` de `supabase/config.toml`: la CLI los sube a la nube al desplegar o al cambiar secretos (así llegaron a producción el buzón de prueba y las claves VAPID locales). Los valores locales viven en `supabase/functions/.env` (solo de prueba, versionado); los de producción, en un archivo fuera del repo con `npx supabase secrets set --env-file <archivo>`.
+> Si se cambian las claves VAPID: actualizar `NEXT_PUBLIC_VAPID_PUBLIC_KEY` en Netlify; cada celular vuelve a tocar "Activar avisos" (el panel reemplaza la suscripción vieja).
+
 1. Migración: `npx supabase db push`.
 2. Secretos de la función (no van al repo):
    ```bash
-   npx supabase secrets set SMTP_USER=universitywebsite2026@gmail.com SMTP_PASS=<contraseña de aplicación de 16 letras>
+   npx supabase secrets set SMTP_USER=universitywebsite2026@gmail.com SMTP_PASS="abcdefghijklmnop"   # las 16 letras juntas, sin espacios, entre comillas
    npx supabase secrets set SMTP_HOST=smtp.gmail.com SMTP_PORT=465 SMTP_SECURE=true \
      MAIL_FROM="Ludiq <universitywebsite2026@gmail.com>" SITE_URL=https://ludiq-lapaz.netlify.app \
      VAPID_PUBLIC_KEY=<pública> VAPID_PRIVATE_KEY=<privada> NOTIFY_SECRET=<secreto largo al azar>

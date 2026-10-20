@@ -69,4 +69,33 @@ test.describe("avisos en el panel", () => {
     await page.goto("/panel/mas");
     await expect(page.getByText("Este navegador no permite avisos. En iPhone, primero instala el panel en la pantalla de inicio.")).toBeVisible();
   });
+
+  test("si cambió la clave de los avisos, la suscripción vieja se reemplaza al activar", async ({ page }) => {
+    const endpoint = `https://push.example/${crypto.randomUUID()}`;
+    await page.addInitScript((ep) => {
+      let permission: NotificationPermission = "granted";
+      Object.defineProperty(Notification, "permission", { get: () => permission });
+      Notification.requestPermission = async () => (permission = "granted");
+      const make = (key: ArrayBuffer | null, id: string) =>
+        ({
+          endpoint: `${ep}/${id}`,
+          options: { applicationServerKey: key },
+          toJSON: () => ({ endpoint: `${ep}/${id}`, keys: { p256dh: "BPfakeP256dhKeyForTests", auth: "fakeAuthKey" } }),
+          unsubscribe: async () => {
+            current = null;
+            return true;
+          },
+        }) as unknown as PushSubscription;
+      // Suscripción hecha con otra clave (la de antes de rotarla).
+      let current: PushSubscription | null = make(new Uint8Array(65).fill(7).buffer, "vieja");
+      PushManager.prototype.getSubscription = async () => current;
+      PushManager.prototype.subscribe = async (opts?: PushSubscriptionOptionsInit) => (current = make(opts?.applicationServerKey as ArrayBuffer, "nueva"));
+    }, endpoint);
+    const admin = await loginAsAdmin(page);
+    await page.goto("/panel/mas");
+    const section = page.getByRole("region", { name: "Avisos en este dispositivo" });
+    await section.getByRole("button", { name: "Activar avisos" }).click();
+    await expect(section.getByText("Avisos activados en este dispositivo")).toBeVisible();
+    expect(await rows(admin.id)).toEqual([`${endpoint}/nueva`]);
+  });
 });

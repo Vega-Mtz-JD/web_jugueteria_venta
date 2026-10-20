@@ -67,3 +67,5 @@ next-env.d.ts
 /test-results/
 /blob-report/
 !.env.example
+# Valores de prueba de las Edge Functions (solo local/CI, sin secretos reales)
+!supabase/functions/.env

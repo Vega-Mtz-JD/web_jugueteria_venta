@@ -14,3 +14,16 @@ describe("urlBase64ToUint8Array", () => {
     expect(Array.from(urlBase64ToUint8Array("-_8"))).toEqual([0xfb, 0xff]);
   });
 });
+
+describe("sameServerKey", () => {
+  it("compara la clave con la que se suscribió el navegador contra la actual", async () => {
+    const { sameServerKey } = await import("./vapid");
+    const bytes = new Uint8Array(65).map((_, i) => (i === 0 ? 4 : i));
+    const key = Buffer.from(bytes).toString("base64url");
+    expect(sameServerKey(bytes.buffer, key)).toBe(true);
+    const other = new Uint8Array(bytes);
+    other[10] = 99;
+    expect(sameServerKey(other.buffer, key)).toBe(false);
+    expect(sameServerKey(null, key)).toBe(false);
+  });
+});

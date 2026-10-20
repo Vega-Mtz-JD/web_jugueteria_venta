@@ -5,11 +5,12 @@ import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { callAction, NETWORK_ERROR } from "../call-action";
 import { removeSubscriptionAction, saveSubscriptionAction, sendTestPushAction } from "./push-actions";
-import { urlBase64ToUint8Array } from "./vapid";
+import { sameServerKey, urlBase64ToUint8Array } from "./vapid";
 
 type State = "cargando" | "no-soportado" | "bloqueado" | "apagado" | "activado";
 
 const SW_URL = "/panel-sw.js";
+const VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const SCOPE = "/panel";
 
 function supported() {
@@ -20,6 +21,9 @@ async function currentSubscription(): Promise<PushSubscription | null> {
   const reg = await navigator.serviceWorker.getRegistration(SCOPE);
   return (await reg?.pushManager.getSubscription()) ?? null;
 }
+
+/** Suscripción hecha con la clave actual; una hecha con otra clave (rotada) no recibe nada. */
+const isCurrent = (sub: PushSubscription | null): boolean => !!sub && sameServerKey(sub.options.applicationServerKey, VAPID_KEY);
 
 /** Activar los avisos de pedidos en este celular o PC (cada dispositivo se activa por separado). */
 export function PushToggle() {
@@ -33,7 +37,7 @@ export function PushToggle() {
       let next: State;
       if (!supported()) next = "no-soportado";
       else if (Notification.permission === "denied") next = "bloqueado";
-      else next = Notification.permission === "granted" && (await currentSubscription().catch(() => null)) ? "activado" : "apagado";
+      else next = Notification.permission === "granted" && isCurrent(await currentSubscription().catch(() => null)) ? "activado" : "apagado";
       if (!cancelled) setState(next);
     })();
     return () => {
@@ -52,8 +56,15 @@ export function PushToggle() {
         }
         const reg = await navigator.serviceWorker.register(SW_URL, { scope: SCOPE });
         await navigator.serviceWorker.ready;
-        const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
-        const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) }));
+        let sub = await reg.pushManager.getSubscription();
+        if (sub && !isCurrent(sub)) {
+          // Hecha con una clave anterior: se borra y se vuelve a suscribir con la actual.
+          const old = sub.endpoint;
+          await sub.unsubscribe().catch(() => false);
+          await callAction(() => removeSubscriptionAction(old));
+          sub = null;
+        }
+        sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_KEY) });
         const json = sub.toJSON();
         const result = await callAction(() =>
           saveSubscriptionAction({ endpoint: sub.endpoint, p256dh: json.keys?.p256dh ?? "", auth: json.keys?.auth ?? "", userAgent: navigator.userAgent.slice(0, 300) }),
