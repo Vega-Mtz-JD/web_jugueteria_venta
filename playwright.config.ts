@@ -20,7 +20,8 @@ export default defineConfig({
     { name: "desktop", testIgnore: PANEL, use: desktop },
     { name: "mobile", testIgnore: PANEL, use: mobile },
     { name: "desktop-panel", testMatch: PANEL, dependencies: ["desktop", "mobile"], use: desktop },
-    { name: "mobile-panel", testMatch: PANEL, dependencies: ["desktop", "mobile"], use: mobile },
+    // Ajustes cambia datos de toda la tienda: solo en un proyecto.
+    { name: "mobile-panel", testMatch: PANEL, testIgnore: /panel-ajustes\.spec\.ts/, dependencies: ["desktop", "mobile"], use: mobile },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined

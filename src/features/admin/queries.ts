@@ -234,3 +234,64 @@ export async function getAdminProduct(productId: string): Promise<AdminProductDe
     }),
   };
 }
+
+// Ajustes ---------------------------------------------------------------------------------------------
+
+export type SettingsData = {
+  store: { storeName: string; tagline: string; whatsappPhone: string; address: string; pickupHours: string };
+  fees: { homeCents: number; meetingCents: number };
+  zones: { id: string; name: string; mode: "domicilio" | "punto"; sortOrder: number; isActive: boolean }[];
+  points: { id: string; name: string; reference: string | null; sortOrder: number; isActive: boolean }[];
+  wallets: { id: string; name: string; accountHolder: string | null; qrUrl: string; sortOrder: number; isActive: boolean }[];
+  categories: { id: string; name: string; sortOrder: number; productCount: number }[];
+  admins: { id: string; email: string; fullName: string | null }[];
+  sampleCount: number;
+  me: string;
+};
+
+/** Todo lo que se edita en Ajustes, incluso lo desactivado. */
+export async function getSettingsData(): Promise<SettingsData> {
+  const supabase = await createServerSupabase();
+  const [claims, settings, zones, points, wallets, categories, admins, samples] = await Promise.all([
+    supabase.auth.getClaims(),
+    supabase.from("store_settings").select("*").maybeSingle(),
+    supabase.from("delivery_zones").select("id, name, mode, sort_order, is_active").order("sort_order").order("name"),
+    supabase.from("meeting_points").select("id, name, reference, sort_order, is_active").order("sort_order").order("name"),
+    supabase.from("payment_methods").select("id, name, account_holder, qr_path, sort_order, is_active").order("sort_order"),
+    supabase.from("categories").select("id, name, sort_order, products(count)").order("sort_order").order("name"),
+    supabase.rpc("admin_list_admins"),
+    supabase.from("products").select("id", { count: "exact", head: true }).eq("is_sample", true),
+  ]);
+  for (const r of [settings, zones, points, wallets, categories, admins]) if (r.error) throw r.error;
+  const { url } = supabaseEnv();
+  const s = settings.data;
+  return {
+    store: {
+      storeName: s?.store_name ?? "",
+      tagline: s?.tagline ?? "",
+      whatsappPhone: s?.whatsapp_phone ?? "",
+      address: s?.address ?? "",
+      pickupHours: s?.pickup_hours ?? "",
+    },
+    fees: { homeCents: s?.delivery_fee_home_cents ?? 0, meetingCents: s?.delivery_fee_meeting_cents ?? 0 },
+    zones: (zones.data ?? []).map((z) => ({ id: z.id, name: z.name, mode: z.mode, sortOrder: z.sort_order, isActive: z.is_active })),
+    points: (points.data ?? []).map((p) => ({ id: p.id, name: p.name, reference: p.reference, sortOrder: p.sort_order, isActive: p.is_active })),
+    wallets: (wallets.data ?? []).map((w) => ({
+      id: w.id,
+      name: w.name,
+      accountHolder: w.account_holder,
+      qrUrl: w.qr_path.startsWith("/") ? w.qr_path : `${url}/storage/v1/object/public/store-assets/${w.qr_path}`,
+      sortOrder: w.sort_order,
+      isActive: w.is_active,
+    })),
+    categories: (categories.data ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      sortOrder: c.sort_order,
+      productCount: (c.products as unknown as { count: number }[])[0]?.count ?? 0,
+    })),
+    admins: (admins.data ?? []).map((a) => ({ id: a.id, email: a.email, fullName: a.full_name })),
+    sampleCount: samples.count ?? 0,
+    me: claims.data?.claims?.sub ?? "",
+  };
+}

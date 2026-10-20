@@ -32,5 +32,15 @@ await call("products?is_sample=eq.false", { method: "DELETE" });
 for (const [slug, stock] of Object.entries(SEED_STOCK)) {
   await call(`products?slug=eq.${slug}`, { method: "PATCH", body: JSON.stringify({ stock, is_active: true }) });
 }
+// Ajustes que cambian las pruebas del panel.
+await call("store_settings?id=eq.1", {
+  method: "PATCH",
+  body: JSON.stringify({ whatsapp_phone: "+59170000000", delivery_fee_home_cents: 1500, delivery_fee_meeting_cents: 0 }),
+});
+await call("delivery_zones?name=eq.Obrajes", { method: "DELETE" });
+await call("meeting_points?id=not.is.null", { method: "PATCH", body: JSON.stringify({ is_active: true }) });
+for (const wallet of ["Yape", "Altoke", "Yasta"]) {
+  await call(`payment_methods?name=eq.${wallet}`, { method: "PATCH", body: JSON.stringify({ qr_path: `/samples/qr-${wallet.toLowerCase()}.svg`, is_active: true }) });
+}
 await call("products?slug=eq.risk", { method: "PATCH", body: JSON.stringify({ is_active: false }) });
 console.log("e2e: base local repuesta al seed");
