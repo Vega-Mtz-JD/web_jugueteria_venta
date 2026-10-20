@@ -1,0 +1,53 @@
+# Respaldo diario de la base de Supabase, cifrado (el repo es público), y consulta liviana
+# para que el plan gratis no se pause. Restaurar: docs/hosting.md.
+name: Respaldo de la base
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # 04:00 en La Paz
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  respaldo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Volcado (roles, esquema y datos)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p respaldo
+          npx supabase db dump --db-url "$SUPABASE_DB_URL" --role-only -f respaldo/roles.sql
+          npx supabase db dump --db-url "$SUPABASE_DB_URL" -f respaldo/schema.sql
+          npx supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy -f respaldo/data.sql
+      - name: Comprimir y cifrar
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          test -n "$BACKUP_PASSPHRASE"
+          name="respaldo-base-$(date -u +%F)"
+          tar czf "$name.tar.gz" respaldo
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o "$name.tar.gz.gpg" "$name.tar.gz"
+          rm -rf respaldo "$name.tar.gz"
+          echo "NAME=$name" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: ${{ env.NAME }}.tar.gz.gpg
+          retention-days: 30
+          if-no-files-found: error
+      - name: Consulta contra la pausa de Supabase
+        if: always()
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          curl -fsS "$SUPABASE_URL/rest/v1/store_settings?select=store_name" -H "apikey: $SUPABASE_ANON_KEY" > /dev/null
