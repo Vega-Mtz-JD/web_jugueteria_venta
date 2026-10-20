@@ -16,8 +16,13 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(api)) throw new Error(`reset-db s
 const headers = { apikey: env.SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SERVICE_ROLE_KEY}`, "Content-Type": "application/json" };
 
 async function call(path: string, init: RequestInit) {
-  const res = await fetch(`${api}/rest/v1/${path}`, { ...init, headers });
-  if (!res.ok) throw new Error(`${path}: ${res.status} ${await res.text()}`);
+  // Justo después de `supabase db reset` la API responde 503 hasta recargar el esquema.
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetch(`${api}/rest/v1/${path}`, { ...init, headers });
+    if (res.ok) return;
+    if (res.status !== 503 || attempt >= 20) throw new Error(`${path}: ${res.status} ${await res.text()}`);
+    await new Promise((r) => setTimeout(r, 1000));
+  }
 }
 
 await call("orders?id=not.is.null", { method: "DELETE" });
