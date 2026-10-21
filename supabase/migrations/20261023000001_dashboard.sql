@@ -285,3 +285,82 @@ end;
 $$;
 revoke execute on function public.admin_dashboard_sales(text, timestamptz) from public, anon;
 grant execute on function public.admin_dashboard_sales(text, timestamptz) to authenticated;
+
+-- Lo que es "ahora": pendientes, se está agotando e inventario ----------------------------------------------
+create or replace function public.admin_dashboard_now()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_result jsonb;
+begin
+  perform public.require_admin();
+
+  with sold30 as (
+    select l.product_id, sum(l.quantity) as units
+    from public.sales_lines(now() - interval '30 days', now() + interval '1 microsecond') l
+    group by l.product_id
+  ),
+  low as (
+    select p.id, p.name, p.stock, coalesce(s.units, 0) as sold30d
+    from public.products p
+    left join sold30 s on s.product_id = p.id
+    where p.is_active and p.stock between 0 and 3
+    order by sold30d desc, p.stock, p.name
+    limit 10
+  ),
+  -- Unidades en la tienda: disponibles + apartadas por pedidos web pendientes.
+  shelf as (
+    select p.id, p.name, p.price_cents, p.stock + public.reserved_units_of(p.id) as units, c.unit_cost_cents as cost
+    from public.products p
+    cross join lateral public.product_current_cost(p.id) c
+    where not p.is_sample
+  ),
+  inv as (select * from shelf where units > 0)
+  select jsonb_build_object(
+    'pendingReview', (select count(*) from public.orders o where o.status = 'en_revision'),
+    'pendingReviewOver24h', (select count(*) from public.orders o
+                             where o.status = 'en_revision' and o.status_changed_at < now() - interval '24 hours'),
+    'toDeliver', (select count(*) from public.orders o where o.status in ('pagado', 'enviado', 'listo_para_recoger')),
+    'purchasesToArrive', (select count(*) from public.purchases where status = 'encargada'),
+    'debt', jsonb_build_object(
+      'bobCents', (select coalesce(sum(b.debt_cents), 0) from public.purchase_balances b where b.currency = 'BOB' and b.debt_cents > 0),
+      'usdCents', (select coalesce(sum(b.debt_cents), 0) from public.purchase_balances b where b.currency = 'USD' and b.debt_cents > 0)),
+    'runningLow', jsonb_build_object(
+      'items', coalesce((select jsonb_agg(jsonb_build_object(
+                  'productId', l.id, 'name', l.name, 'stock', l.stock, 'sold30d', l.sold30d,
+                  'reorder', (select jsonb_build_object('supplierName', s.name, 'contactName', s.contact_name,
+                                                        'whatsapp', s.whatsapp, 'quantity', i.quantity_received)
+                              from public.purchase_items i
+                              join public.purchases pu on pu.id = i.purchase_id
+                              join public.suppliers s on s.id = pu.supplier_id
+                              where i.product_id = l.id and pu.status = 'recibida' and i.quantity_received > 0
+                              order by pu.received_at desc, i.id desc limit 1))
+                  order by l.sold30d desc, l.stock, l.name) from low l), '[]'::jsonb),
+      'lowStockCount', (select count(*) from public.products p where p.is_active and p.stock between 1 and 3),
+      'outOfStockCount', (select count(*) from public.products p where p.is_active and p.stock = 0)),
+    'inventory', jsonb_build_object(
+      'products', (select count(*) from inv),
+      'units', (select coalesce(sum(units), 0) from inv),
+      'costValueCents', (select coalesce(sum(units::bigint * cost) filter (where cost is not null), 0) from inv),
+      'saleValueCents', (select coalesce(sum(units::bigint * price_cents) filter (where price_cents > 0), 0) from inv),
+      'potentialProfitCents', (select coalesce(sum(units::bigint * (price_cents - cost)) filter (where cost is not null and price_cents > 0), 0) from inv),
+      'withoutCost', jsonb_build_object(
+        'products', (select count(*) from inv where cost is null),
+        'units', (select coalesce(sum(units), 0) from inv where cost is null),
+        'items', coalesce((select jsonb_agg(jsonb_build_object('productId', x.id, 'name', x.name) order by x.name)
+                           from (select id, name from inv where cost is null order by name limit 20) x), '[]'::jsonb)),
+      'withoutPrice', jsonb_build_object(
+        'products', (select count(*) from inv where price_cents = 0),
+        'items', coalesce((select jsonb_agg(jsonb_build_object('productId', x.id, 'name', x.name) order by x.name)
+                           from (select id, name from inv where price_cents = 0 order by name limit 20) x), '[]'::jsonb)),
+      'samplesWithStock', (select count(*) from public.products p where p.is_sample and p.stock + public.reserved_units_of(p.id) > 0))
+  ) into v_result;
+  return v_result;
+end;
+$$;
+revoke execute on function public.admin_dashboard_now() from public, anon;
+grant execute on function public.admin_dashboard_now() to authenticated;

@@ -545,6 +545,9 @@ isOneToOne: false
               "email": string,"full_name": string,"phone": string
             }[]
                            },
+"admin_dashboard_now":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "admin_dashboard_sales":
 { Args: { "p_now"?: string,"p_period": string }; Returns: Json
                            },
