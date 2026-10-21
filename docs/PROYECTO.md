@@ -160,7 +160,7 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 | 1 | Fundaciones y catálogo público (portada, catálogo, ficha, SEO, CI, Netlify) | ✅ En producción: https://ludiq-lapaz.netlify.app (PR #1) |
 | 2 | Cuentas, carrito, checkout, pago QR y mis pedidos | ✅ En producción (PR #2). Compra real probada por Diego en la vista previa; SMTP con Gmail funcionando |
 | 3A | Panel para vender: portada con números clave, pedidos (revisar, confirmar, rechazar, enviar, reembolsar), productos con fotos, stock con historial, "Vendí", contar estante, ajustes y administradores; instalable | ✅ En producción (PR #3). Probado por Diego en su Android (panel instalado); migraciones `20261020000001`–`…0005` en la nube; Diego es el primer admin |
-| 3B | Inventario, proveedores y compras: encargo, llegada por bus, pagos en Bs o dólares (dólar de cada pago), saldo a favor, costo real con envío, ganancia por venta | Programado y probado (PR #5); falta `db push` de Diego, prueba en Android y fusión |
+| 3B | Inventario, proveedores y compras: encargo, llegada por bus, pagos en Bs o dólares (dólar de cada pago), saldo a favor, costo real con envío, ganancia por venta | ✅ En producción (PR #5). Migraciones `20261022000001`–`…0002` en la nube; probado por Diego en su Android (proveedor, compra con juego nuevo, adelanto, llegada con encomienda y costo) |
 | 4 | Avisos (Web Push a los admins, correos al comprador en cada paso), respaldos cifrados diarios/semanales y consulta diaria contra la pausa | ✅ En producción (PR #4). Nube configurada (función `notify`, Vault, secretos, Netlify y GitHub); probado por Diego en su Android (aviso, correos y respaldos cifrados en Actions) |
 | 5 | Dashboard con gráficos (ventas, inventario, ganancia, clientes) | Por planificar (primera quincena de diciembre) |
 | Etapa 2 | Estadísticas avanzadas, demo de portafolio, fotos reales del Illimani, dominio propio | Diciembre |
@@ -182,6 +182,15 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
   - el CI hace el build dos veces;
   - `shadcn` está en `dependencies`;
   - `metadataBase` usa una dirección de respaldo si falta `NEXT_PUBLIC_SITE_URL`.
+- **Plan 3B** (decisiones en el PR #5; detalles menores):
+  - "Llegó" con la respuesta perdida muestra "Esta compra ya llegó" aunque se guardó;
+  - `admin_void_payment` no bloquea la compra; corregir con `quantity: null` por RPC directa;
+  - el mensaje "ya se vendieron N" puede incluir unidades apartadas;
+  - el historial de compras busca solo en las 100 últimas; líneas repetidas del mismo producto permitidas;
+  - editar una compra de un proveedor desactivado; anular un traspaso de saldo no avisa que cambia la otra compra;
+  - devolución prellenada en la moneda de la compra; sin vista previa "= US$ x";
+  - algunas acciones no llaman `isAdminSession` (la base sí lo exige); crear proveedor no es idempotente;
+  - si todo llega con 0 unidades, el envío no entra en ningún costo; falta la nota de la tolerancia de medio centavo.
 - **Plan 4** (decisiones en el PR #4; detalles menores):
   - si `finish_notification` falla tras enviar, el correo se repite a los 5 min; tras un envío exitoso queda el `last_error` del intento anterior;
   - una excepción fuera de `dispatch` frena el resto del lote 5 min; la decisión reintentar/enviado vive en `index.ts` (sin prueba);
