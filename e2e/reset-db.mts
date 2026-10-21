@@ -28,6 +28,9 @@ async function call(path: string, init: RequestInit) {
 await call("orders?id=not.is.null", { method: "DELETE" });
 // Lo que crean las pruebas del panel: ventas manuales y productos propios (los del seed son is_sample).
 await call("manual_sales?id=not.is.null", { method: "DELETE" });
+// Compras y proveedores de las pruebas (las líneas y los pagos se borran en cascada).
+await call("purchases?id=not.is.null", { method: "DELETE" });
+await call("suppliers?id=not.is.null", { method: "DELETE" });
 await call("products?is_sample=eq.false", { method: "DELETE" });
 // Las pruebas crean un admin nuevo cada vez y cada aviso de pago escribe a todos: sin esto, cada corrida es más lenta.
 await call("profiles?role=eq.admin", { method: "PATCH", body: JSON.stringify({ role: "customer" }) });
