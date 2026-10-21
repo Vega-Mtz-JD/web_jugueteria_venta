@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { barLabel, parsePeriod, PERIODS, previousLabel, profitTitle } from "./period";
+import { barLabel, parsePeriod, PERIODS, previousLabel, profitTitle, rangeLabel } from "./period";
 
 const oct = { from: "2026-10-01", to: "2026-10-21" };
 
@@ -44,5 +44,14 @@ describe("barLabel", () => {
     expect(barLabel("dia", "2026-10-25", 6)).toBe("dom 25");
     expect(barLabel("semana", "2026-10-05", 2)).toBe("sem 2");
     expect(barLabel("mes", "2026-10-01", 12)).toBe("oct");
+  });
+});
+
+describe("rangeLabel", () => {
+  it("pone el rango en palabras", () => {
+    expect(rangeLabel({ from: "2026-10-21", to: "2026-10-21" })).toBe("21 de octubre de 2026");
+    expect(rangeLabel({ from: "2026-10-01", to: "2026-10-21" })).toBe("del 1 al 21 de octubre de 2026");
+    expect(rangeLabel({ from: "2026-09-28", to: "2026-10-04" })).toBe("del 28 de septiembre al 4 de octubre de 2026");
+    expect(rangeLabel({ from: "2025-11-01", to: "2026-10-21" })).toBe("del 1 de noviembre de 2025 al 21 de octubre de 2026");
   });
 });

@@ -61,3 +61,14 @@ export function barLabel(kind: "dia" | "semana" | "mes", from: string, idx: numb
   if (kind === "semana") return `sem ${idx}`;
   return MONTHS[c.m - 1].slice(0, 3);
 }
+
+/** "21 de octubre de 2026", "del 1 al 21 de octubre de 2026", "del 28 de septiembre al 4 de octubre de 2026"… */
+export function rangeLabel(range: Range): string {
+  const a = civil(range.from);
+  const b = civil(range.to);
+  const full = (c: typeof a) => `${c.d} de ${MONTHS[c.m - 1]} de ${c.y}`;
+  if (range.from === range.to) return full(b);
+  if (a.y !== b.y) return `del ${full(a)} al ${full(b)}`;
+  if (a.m !== b.m) return `del ${a.d} de ${MONTHS[a.m - 1]} al ${full(b)}`;
+  return `del ${a.d} al ${full(b)}`;
+}
