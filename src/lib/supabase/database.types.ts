@@ -289,6 +289,102 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"purchase_items": {
+                  Row: {
+                    "id": string,"line_cost_cents": number | null,"product_id": string,"purchase_id": string,"quantity_ordered": number,"quantity_received": number | null,"unit_price_cents": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"line_cost_cents"?: number | null,"product_id": string,"purchase_id": string,"quantity_ordered": number,"quantity_received"?: number | null,"unit_price_cents": number
+                  }
+                  Update: {
+                    "id"?: string,"line_cost_cents"?: number | null,"product_id"?: string,"purchase_id"?: string,"quantity_ordered"?: number,"quantity_received"?: number | null,"unit_price_cents"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "purchase_items_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "purchase_items_purchase_id_fkey"
+      columns: ["purchase_id"]
+isOneToOne: false
+      referencedRelation: "purchase_balances"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "purchase_items_purchase_id_fkey"
+      columns: ["purchase_id"]
+isOneToOne: false
+      referencedRelation: "purchases"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"purchase_payments": {
+                  Row: {
+                    "amount_bob_cents": number,"amount_cents": number,"amount_purchase_cents": number,"created_at": string,"created_by": string | null,"currency": string,"id": string,"kind": string,"linked_payment_id": string | null,"note": string | null,"paid_on": string,"purchase_id": string,"rate": number | null,"request_id": string | null,"voided_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_bob_cents": number,"amount_cents": number,"amount_purchase_cents": number,"created_at"?: string,"created_by"?: string | null,"currency": string,"id"?: string,"kind"?: string,"linked_payment_id"?: string | null,"note"?: string | null,"paid_on"?: string,"purchase_id": string,"rate"?: number | null,"request_id"?: string | null,"voided_at"?: string | null
+                  }
+                  Update: {
+                    "amount_bob_cents"?: number,"amount_cents"?: number,"amount_purchase_cents"?: number,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"id"?: string,"kind"?: string,"linked_payment_id"?: string | null,"note"?: string | null,"paid_on"?: string,"purchase_id"?: string,"rate"?: number | null,"request_id"?: string | null,"voided_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "purchase_payments_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "purchase_payments_linked_payment_id_fkey"
+      columns: ["linked_payment_id"]
+isOneToOne: false
+      referencedRelation: "purchase_payments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "purchase_payments_purchase_id_fkey"
+      columns: ["purchase_id"]
+isOneToOne: false
+      referencedRelation: "purchase_balances"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "purchase_payments_purchase_id_fkey"
+      columns: ["purchase_id"]
+isOneToOne: false
+      referencedRelation: "purchases"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"purchases": {
+                  Row: {
+                    "arrival_rate": number | null,"created_at": string,"created_by": string | null,"currency": string,"id": string,"issues_note": string | null,"note": string | null,"ordered_on": string,"received_at": string | null,"request_id": string,"shipping_cents": number | null,"status": string,"supplier_id": string,"voided_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "arrival_rate"?: number | null,"created_at"?: string,"created_by"?: string | null,"currency": string,"id"?: string,"issues_note"?: string | null,"note"?: string | null,"ordered_on"?: string,"received_at"?: string | null,"request_id": string,"shipping_cents"?: number | null,"status"?: string,"supplier_id": string,"voided_at"?: string | null
+                  }
+                  Update: {
+                    "arrival_rate"?: number | null,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"id"?: string,"issues_note"?: string | null,"note"?: string | null,"ordered_on"?: string,"received_at"?: string | null,"request_id"?: string,"shipping_cents"?: number | null,"status"?: string,"supplier_id"?: string,"voided_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "purchases_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "purchases_supplier_id_fkey"
+      columns: ["supplier_id"]
+isOneToOne: false
+      referencedRelation: "suppliers"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"push_subscriptions": {
                   Row: {
                     "auth": string,"created_at": string,"endpoint": string,"id": string,"p256dh": string,"user_agent": string | null,"user_id": string
@@ -343,17 +439,51 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"suppliers": {
+                  Row: {
+                    "contact_name": string | null,"created_at": string,"id": string,"is_active": boolean,"name": string,"notes": string | null,"whatsapp": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "contact_name"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name": string,"notes"?: string | null,"whatsapp"?: string | null
+                  }
+                  Update: {
+                    "contact_name"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name"?: string,"notes"?: string | null,"whatsapp"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
-            [_ in never]: never
+            "purchase_balances": {
+                  Row: {
+                    "currency": string | null,"debt_cents": number | null,"id": string | null,"paid_cents": number | null,"status": string | null,"supplier_id": string | null,"total_cents": number | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "purchases_supplier_id_fkey"
+      columns: ["supplier_id"]
+isOneToOne: false
+      referencedRelation: "suppliers"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
           }
           Functions: {
             "admin_adjust_stock":
 { Args: { "p_delta": number,"p_product_id": string }; Returns: number
                            },
+"admin_correct_arrival":
+{ Args: { "p_arrival_rate": number,"p_purchase_id": string,"p_received": Json,"p_shipping_cents": number }; Returns: undefined
+                           },
 "admin_count_shelf":
 { Args: { "p_counted": number,"p_product_id": string }; Returns: number
+                           },
+"admin_create_purchase":
+{ Args: { "p_currency": string,"p_lines": Json,"p_note": string,"p_ordered_on": string,"p_request_id": string,"p_supplier_id": string }; Returns: string
                            },
 "admin_customer_contact":
 { Args: { "p_order_id": string }; Returns: {
@@ -370,6 +500,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "email": string,"full_name": string,"id": string
             }[]
+                           },
+"admin_receive_purchase":
+{ Args: { "p_arrival_rate": number,"p_purchase_id": string,"p_received": Json,"p_shipping_cents": number }; Returns: undefined
                            },
 "admin_record_manual_sale":
 { Args: { "p_channel": string,"p_note"?: string,"p_product_id": string,"p_quantity": number,"p_request_id"?: string,"p_unit_price_cents": number }; Returns: string
@@ -388,11 +521,29 @@ isOneToOne: false
 "admin_set_order_status":
 { Args: { "p_expected_from": Database["public"]['Enums']["order_status"],"p_order_id": string,"p_rejection_reason"?: string,"p_shipping_agency"?: string,"p_shipping_proof_path"?: string,"p_to": Database["public"]['Enums']["order_status"],"p_tracking_code"?: string }; Returns: undefined
                            },
+"admin_set_purchase_notes":
+{ Args: { "p_issues_note": string,"p_note": string,"p_purchase_id": string }; Returns: undefined
+                           },
+"admin_update_purchase":
+{ Args: { "p_currency": string,"p_lines": Json,"p_note": string,"p_ordered_on": string,"p_purchase_id": string,"p_supplier_id": string }; Returns: undefined
+                           },
 "admin_void_manual_sale":
 { Args: { "p_sale_id": string }; Returns: undefined
                            },
+"admin_void_purchase":
+{ Args: { "p_purchase_id": string }; Returns: undefined
+                           },
+"apply_purchase_stock":
+{ Args: { "p_deltas": Json,"p_purchase_id": string,"p_reason": string }; Returns: undefined
+                           },
 "cancel_order_by_customer":
 { Args: { "p_order_id": string }; Returns: undefined
+                           },
+"check_arrival_values":
+{ Args: { "p_arrival_rate": number,"p_currency": string,"p_shipping_cents": number }; Returns: undefined
+                           },
+"check_purchase_header":
+{ Args: { "p_currency": string,"p_supplier_id": string }; Returns: undefined
                            },
 "claim_notifications":
 { Args: { "p_limit"?: number }; Returns: Json
@@ -405,6 +556,9 @@ isOneToOne: false
 "delete_sample_products":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"distribute_cents":
+{ Args: { "p_ids": (string)[],"p_total": number,"p_weights": (number)[] }; Returns: (number)[]
+                           },
 "expire_orders":
 { Args: { "p_now"?: string }; Returns: number
                            },
@@ -414,11 +568,28 @@ isOneToOne: false
 "immutable_unaccent":
 { Args: { "": string }; Returns: string
                            },
+"insert_purchase_lines":
+{ Args: { "p_lines": Json,"p_purchase_id": string }; Returns: undefined
+                           },
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"next_free_product_slug":
+{ Args: { "p_base": string }; Returns: string
+                           },
 "order_status_label":
 { Args: { "p_status": Database["public"]['Enums']["order_status"] }; Returns: string
+                           },
+"purchase_effective_rate":
+{ Args: { "p_purchase_id": string }; Returns: number
+                           },
+"read_received":
+{ Args: { "p_purchase_id": string,"p_received": Json }; Returns: {
+              "item_id": string,"previous": number,"product_id": string,"quantity": number
+            }[]
+                           },
+"recompute_purchase_costs":
+{ Args: { "p_purchase_id": string }; Returns: undefined
                            },
 "require_admin":
 { Args: Record<PropertyKey, never>; Returns: undefined
@@ -431,6 +602,9 @@ isOneToOne: false
                            },
 "set_stock_reason":
 { Args: { "p_note"?: string,"p_reason": string,"p_ref"?: string }; Returns: undefined
+                           },
+"slugify_name":
+{ Args: { "p_name": string }; Returns: string
                            },
 "submit_payment_proof":
 { Args: { "p_order_id": string,"p_path": string }; Returns: undefined
