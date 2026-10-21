@@ -235,6 +235,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"product_costs": {
+                  Row: {
+                    "initial_cost_cents": number,"product_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "initial_cost_cents": number,"product_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "initial_cost_cents"?: number,"product_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_costs_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: true
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"product_images": {
                   Row: {
                     "alt": string | null,"id": string,"path": string,"product_id": string,"sort_order": number
@@ -405,6 +425,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"sale_costs": {
+                  Row: {
+                    "cost_origin": string | null,"created_at": string,"id": number,"manual_sale_id": string | null,"order_item_id": string | null,"product_id": string,"quantity": number,"source": string,"unit_cost_cents": number | null,"unit_price_cents": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cost_origin"?: string | null,"created_at"?: string,"id"?: never,"manual_sale_id"?: string | null,"order_item_id"?: string | null,"product_id": string,"quantity": number,"source": string,"unit_cost_cents"?: number | null,"unit_price_cents": number
+                  }
+                  Update: {
+                    "cost_origin"?: string | null,"created_at"?: string,"id"?: never,"manual_sale_id"?: string | null,"order_item_id"?: string | null,"product_id"?: string,"quantity"?: number,"source"?: string,"unit_cost_cents"?: number | null,"unit_price_cents"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "sale_costs_manual_sale_id_fkey"
+      columns: ["manual_sale_id"]
+isOneToOne: true
+      referencedRelation: "manual_sales"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sale_costs_order_item_id_fkey"
+      columns: ["order_item_id"]
+isOneToOne: true
+      referencedRelation: "order_items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sale_costs_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"stock_movements": {
                   Row: {
                     "actor": string | null,"created_at": string,"delta": number,"id": number,"note": string | null,"product_id": string,"reason": string,"ref_id": string | null
@@ -504,6 +556,9 @@ isOneToOne: false
               "email": string,"full_name": string,"id": string
             }[]
                            },
+"admin_product_cost_summary":
+{ Args: { "p_product_id": string }; Returns: Json
+                           },
 "admin_receive_purchase":
 { Args: { "p_arrival_rate": number,"p_purchase_id": string,"p_received": Json,"p_shipping_cents": number }; Returns: undefined
                            },
@@ -523,6 +578,9 @@ isOneToOne: false
                            },
 "admin_set_admin":
 { Args: { "p_email": string,"p_make_admin": boolean }; Returns: undefined
+                           },
+"admin_set_initial_cost":
+{ Args: { "p_cost_cents": number,"p_product_id": string }; Returns: undefined
                            },
 "admin_set_order_status":
 { Args: { "p_expected_from": Database["public"]['Enums']["order_status"],"p_order_id": string,"p_rejection_reason"?: string,"p_shipping_agency"?: string,"p_shipping_proof_path"?: string,"p_to": Database["public"]['Enums']["order_status"],"p_tracking_code"?: string }; Returns: undefined
@@ -588,6 +646,11 @@ isOneToOne: false
                            },
 "order_status_label":
 { Args: { "p_status": Database["public"]['Enums']["order_status"] }; Returns: string
+                           },
+"product_current_cost":
+{ Args: { "p_product_id": string }; Returns: {
+              "origin": string,"unit_cost_cents": number
+            }[]
                            },
 "purchase_effective_rate":
 { Args: { "p_purchase_id": string }; Returns: number
