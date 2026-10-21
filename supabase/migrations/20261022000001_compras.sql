@@ -495,7 +495,7 @@ begin
   from public.read_received(p_purchase_id, p_received) r where i.id = r.item_id;
   perform public.apply_purchase_stock(p_purchase_id, v_deltas, 'compra');
   update public.purchases
-  set status = 'recibida', received_at = now(), shipping_cents = coalesce(p_shipping_cents, 0),
+  set status = 'recibida', received_at = clock_timestamp(), shipping_cents = coalesce(p_shipping_cents, 0),
       arrival_rate = case when currency = 'USD' then p_arrival_rate end
   where id = p_purchase_id;
   perform public.recompute_purchase_costs(p_purchase_id);
