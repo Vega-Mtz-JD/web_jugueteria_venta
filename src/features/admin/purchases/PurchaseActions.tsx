@@ -41,6 +41,13 @@ function ArrivalDialog({ purchase, mode, open, onOpenChange }: { purchase: Purch
   const [payNow, setPayNow] = useState(false);
   const [requestId] = useState(() => crypto.randomUUID());
   const usd = purchase.currency === "USD";
+  const [quantities, setQuantities] = useState<Record<string, string>>(() =>
+    Object.fromEntries(purchase.items.map((i) => [i.id, String(mode === "llegada" ? i.quantityOrdered : (i.quantityReceived ?? 0))])),
+  );
+  const [balanceEdited, setBalanceEdited] = useState<string | null>(null);
+  // Lo que falta pagar según lo que LLEGÓ (no lo encargado): Σ cantidad × precio − ya pagado.
+  const arrivedTotal = purchase.items.reduce((sum, i) => sum + (Number(quantities[i.id]) || 0) * i.unitPriceCents, 0);
+  const balanceText = balanceEdited ?? centsToBsText(Math.max(0, arrivedTotal - purchase.paidCents));
 
   function submit(f: FormData) {
     const arrival = {
@@ -97,7 +104,8 @@ function ArrivalDialog({ purchase, mode, open, onOpenChange }: { purchase: Purch
                 type="number"
                 inputMode="numeric"
                 min={0}
-                defaultValue={mode === "llegada" ? i.quantityOrdered : (i.quantityReceived ?? 0)}
+                value={quantities[i.id] ?? ""}
+                onChange={(e) => setQuantities((q) => ({ ...q, [i.id]: e.target.value }))}
                 className={control}
               />
               <span className="text-xs font-normal text-muted-foreground">Encargaste {i.quantityOrdered}</span>
@@ -122,7 +130,7 @@ function ArrivalDialog({ purchase, mode, open, onOpenChange }: { purchase: Purch
               {payNow && (
                 <label className={field}>
                   Monto del saldo
-                  <input name="balance" inputMode="decimal" defaultValue={centsToBsText(purchase.debtCents)} className={control} />
+                  <input name="balance" inputMode="decimal" value={balanceText} onChange={(e) => setBalanceEdited(e.target.value)} className={control} />
                   <span className="text-xs font-normal text-muted-foreground">En {usd ? "dólares, con el dólar de arriba" : "bolivianos"}. Si llegó menos, paga menos.</span>
                 </label>
               )}
@@ -233,9 +241,10 @@ function CreditDialog({ purchase, open, onOpenChange }: { purchase: PurchaseDeta
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [target, setTarget] = useState(purchase.creditTargets[0]?.id ?? "");
-  const [requestId] = useState(() => crypto.randomUUID());
+  // Se renueva al terminar: sin recargar, un segundo traspaso no debe reusar el id del primero.
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const targetCurrency = purchase.creditTargets.find((t) => t.id === target)?.currency;
-  const needsRate = purchase.currency === "USD" || targetCurrency === "USD";
+  const needsRate = targetCurrency !== undefined && targetCurrency !== purchase.currency;
   return (
     <Dialog open={open} onOpenChange={(o) => (o || setError(null), onOpenChange(o))}>
       <DialogContent>
@@ -249,6 +258,7 @@ function CreditDialog({ purchase, open, onOpenChange }: { purchase: PurchaseDeta
             startTransition(async () => {
               const result = await callAction(() => applyCreditAction(requestId, purchase.id, target, rate));
               if ("error" in result) return setError(result.error);
+              setRequestId(crypto.randomUUID());
               onOpenChange(false);
               router.refresh();
             });

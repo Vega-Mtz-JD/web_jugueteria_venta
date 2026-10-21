@@ -1,19 +1,72 @@
 "use client";
 
 import { PlusIcon, Trash2Icon } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { callAction } from "../call-action";
 import { control, field } from "../settings/shared";
 import type { Currency } from "./money";
 import { createPurchaseAction, updatePurchaseAction } from "./purchase-actions";
+import { saveSupplierAction } from "./supplier-actions";
 import type { PurchaseInput } from "./purchase-schema";
 
 type Option = { id: string; name: string };
-type Line = { key: string; productId: string; isNew: boolean; newName: string; categoryId: string; quantity: string; unitPrice: string };
+type Line = { key: string; productId: string; isNew: boolean; newName: string; categoryId: string; quantity: string; unitPrice: string; search: string };
+
+const fold = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/** Alta de proveedor sin salir del formulario (no se pierden las líneas ya escritas). */
+function NewSupplierDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; onCreated: (s: Option) => void }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogTitle>Nuevo proveedor</DialogTitle>
+        <DialogDescription>Queda guardado y elegido para esta compra.</DialogDescription>
+        <div className="grid gap-3">
+          <label className={field}>
+            Nombre
+            <input id="ns-name" maxLength={120} className={control} />
+          </label>
+          <label className={field}>
+            Persona de contacto
+            <input id="ns-contact" maxLength={120} className={control} />
+          </label>
+          <label className={field}>
+            WhatsApp
+            <input id="ns-whatsapp" type="tel" placeholder="71234567" className={control} />
+          </label>
+          {error && (
+            <p role="alert" className="text-sm font-medium text-rojo">
+              {error}
+            </p>
+          )}
+          <Button
+            type="button"
+            size="lg"
+            disabled={pending}
+            onClick={() => {
+              const value = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value ?? "";
+              const input = { name: value("ns-name"), contactName: value("ns-contact"), whatsapp: value("ns-whatsapp"), notes: "", isActive: true };
+              startTransition(async () => {
+                const result = await callAction(() => saveSupplierAction(null, input));
+                if ("error" in result) return setError(result.error);
+                setError(null);
+                onCreated({ id: result.id, name: input.name.trim() });
+              });
+            }}
+          >
+            {pending ? "Guardando…" : "Agregar proveedor"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export type PurchaseFormInitial = {
   id: string;
@@ -24,7 +77,7 @@ export type PurchaseFormInitial = {
   lines: { productId: string; quantity: number; unitPriceText: string }[];
 };
 
-const newLine = (): Line => ({ key: crypto.randomUUID(), productId: "", isNew: false, newName: "", categoryId: "", quantity: "1", unitPrice: "" });
+const newLine = (): Line => ({ key: crypto.randomUUID(), productId: "", isNew: false, newName: "", categoryId: "", quantity: "1", unitPrice: "", search: "" });
 
 /** Encargar una compra (o corregirla mientras no llegue). Las líneas se agregan de a una: cómodo en el celular. */
 export function PurchaseForm({
@@ -43,6 +96,9 @@ export function PurchaseForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [supplierList, setSupplierList] = useState(suppliers);
+  const [supplierId, setSupplierId] = useState(initial?.supplierId ?? "");
+  const [supplierDialog, setSupplierDialog] = useState(false);
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "BOB");
   const [lines, setLines] = useState<Line[]>(
     initial?.lines.map((l) => ({ ...newLine(), productId: l.productId, quantity: String(l.quantity), unitPrice: l.unitPriceText })) ?? [newLine()],
@@ -56,7 +112,7 @@ export function PurchaseForm({
 
   function submit(form: FormData) {
     const input: PurchaseInput = {
-      supplierId: String(form.get("supplierId") ?? ""),
+      supplierId,
       orderedOn: String(form.get("orderedOn") ?? today),
       currency,
       note: String(form.get("note") ?? ""),
@@ -108,21 +164,20 @@ export function PurchaseForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className={field}>
           <label htmlFor="purchase-supplier">Proveedor</label>
-          <select id="purchase-supplier" name="supplierId" defaultValue={initial?.supplierId ?? ""} className={control}>
+          <select id="purchase-supplier" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className={control}>
             <option value="" disabled>
               Elige un proveedor
             </option>
-            {suppliers.map((s) => (
+            {supplierList.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
               </option>
             ))}
           </select>
-          {suppliers.length === 0 && (
-            <Link href="/panel/proveedores" className="text-sm font-normal text-verde underline">
-              Primero agrega un proveedor
-            </Link>
-          )}
+          <Button type="button" variant="ghost" className="justify-self-start text-verde" onClick={() => setSupplierDialog(true)}>
+            <PlusIcon data-icon="inline-start" />
+            Nuevo proveedor
+          </Button>
         </div>
         <label className={field}>
           Fecha del encargo
@@ -176,12 +231,19 @@ export function PurchaseForm({
                 </div>
               ) : (
                 <div className={field}>
+                  <input
+                    aria-label="Buscar producto"
+                    value={l.search}
+                    onChange={(e) => update(l.key, { search: e.target.value })}
+                    placeholder="Buscar producto…"
+                    className={`${control} font-normal`}
+                  />
                   <label htmlFor={`prod-${l.key}`}>Producto</label>
                   <select id={`prod-${l.key}`} value={l.productId} onChange={(e) => update(l.key, { productId: e.target.value })} className={control}>
                     <option value="" disabled>
                       Elige un producto
                     </option>
-                    {products.map((p) => (
+                    {products.filter((p) => p.id === l.productId || fold(p.name).includes(fold(l.search.trim()))).map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
                       </option>
@@ -245,6 +307,15 @@ export function PurchaseForm({
           {error}
         </p>
       )}
+      <NewSupplierDialog
+        open={supplierDialog}
+        onOpenChange={setSupplierDialog}
+        onCreated={(s) => {
+          setSupplierList((list) => [...list, s].sort((a, b) => a.name.localeCompare(b.name)));
+          setSupplierId(s.id);
+          setSupplierDialog(false);
+        }}
+      />
       <Button type="submit" size="lg" disabled={pending} className="justify-self-start">
         {pending ? "Guardando…" : initial ? "Guardar cambios" : "Guardar compra"}
       </Button>

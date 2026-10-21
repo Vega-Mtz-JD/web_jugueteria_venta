@@ -53,3 +53,14 @@ describe("paymentInputSchema", () => {
     expect(messages(paymentInputSchema.safeParse({ ...base, amount: "0" }))).toContain("Escribe el monto del pago");
   });
 });
+
+describe("correcciones de la revisión", () => {
+  it("un precio vacío no se guarda como 0", () => {
+    const r = purchaseInputSchema.safeParse({ supplierId: uuid, orderedOn: "2026-10-22", currency: "BOB", note: "", lines: [{ productId: uuid, quantity: "1", unitPrice: "" }] });
+    expect(messages(r)).toContain("Escribe el precio de cada producto");
+  });
+  it("un precio 0 escrito a propósito sí vale (regalo del proveedor)", () => {
+    const r = purchaseInputSchema.parse({ supplierId: uuid, orderedOn: "2026-10-22", currency: "BOB", note: "", lines: [{ productId: uuid, quantity: "1", unitPrice: "0" }] });
+    expect(r.lines[0].unitPriceCents).toBe(0);
+  });
+});

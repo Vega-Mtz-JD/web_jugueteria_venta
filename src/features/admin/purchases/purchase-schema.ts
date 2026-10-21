@@ -18,7 +18,11 @@ const quantity = (message: string, min: number) =>
 
 const cents = (message: string, opts: { allowEmpty?: boolean; positive?: boolean } = {}) =>
   z.string().transform((v, ctx) => {
-    if (opts.allowEmpty && v.trim() === "") return 0;
+    if (v.trim() === "") {
+      if (opts.allowEmpty) return 0;
+      ctx.addIssue({ code: "custom", message }); // vacío no es 0: el dueño olvidó el precio
+      return z.NEVER;
+    }
     const c = moneyToCents(v);
     if (c === null || (opts.positive && c <= 0) || c > 100_000_000) {
       ctx.addIssue({ code: "custom", message });

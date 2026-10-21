@@ -8,8 +8,9 @@ alter table public.stock_movements add constraint stock_movements_reason_check
   check (reason in ('alta', 'venta_web', 'devolucion_web', 'venta_manual', 'anulacion_venta_manual', 'ajuste', 'compra', 'anulacion_compra'));
 
 -- Un juego creado desde una compra nace con precio 0: no se puede mostrar hasta ponerle precio.
--- (not valid: no revisa filas viejas, sí cada alta o cambio desde ahora)
-alter table public.products add constraint products_visible_price check (not is_active or price_cents > 0) not valid;
+-- Validada para todas las filas: un CHECK se evalúa en cada update, y una fila vieja que no lo cumpliera
+-- haría fallar hasta las ventas (en producción no había ninguna al publicar).
+alter table public.products add constraint products_visible_price check (not is_active or price_cents > 0);
 
 -- Tablas ------------------------------------------------------------------------------------------------
 create table public.suppliers (
@@ -228,6 +229,7 @@ declare
   v_bob bigint[];
   v_ship bigint[];
   v_total bigint;
+  v_goods bigint;
   i int;
 begin
   select * into v from public.purchases where id = p_purchase_id;
@@ -247,7 +249,11 @@ begin
     v_bob := v_values;
   else
     v_total := (select sum(x) from unnest(v_values) x);
-    v_bob := public.distribute_cents(round(v_total * public.purchase_effective_rate(p_purchase_id))::bigint, v_values, v_ids);
+    v_goods := round(v_total * public.purchase_effective_rate(p_purchase_id))::bigint;
+    if v_goods < 0 then
+      raise exception 'Revisa a cuánto estaba el dólar: el costo de los productos quedaría negativo' using errcode = 'P0001';
+    end if;
+    v_bob := public.distribute_cents(v_goods, v_values, v_ids);
   end if;
   v_ship := public.distribute_cents(coalesce(v.shipping_cents, 0), v_bob, v_ids);
 
@@ -422,6 +428,15 @@ begin
     raise exception 'Solo se puede corregir una compra encargada' using errcode = 'P0001';
   end if;
   perform public.check_purchase_header(p_supplier_id, p_currency);
+  -- Los pagos ya convertidos a la moneda (y a la cuenta) de la compra quedarían mal.
+  if exists (select 1 from public.purchase_payments where purchase_id = p_purchase_id and voided_at is null) then
+    if p_currency <> v.currency then
+      raise exception 'Primero anula los pagos para cambiar la moneda' using errcode = 'P0001';
+    end if;
+    if p_supplier_id <> v.supplier_id then
+      raise exception 'Primero anula los pagos para cambiar el proveedor' using errcode = 'P0001';
+    end if;
+  end if;
   update public.purchases
   set supplier_id = p_supplier_id, ordered_on = coalesce(p_ordered_on, ordered_on), currency = p_currency, note = nullif(trim(p_note), '')
   where id = p_purchase_id;
@@ -701,7 +716,7 @@ begin
   if coalesce(v_credit, 0) <= 0 then
     raise exception 'Esta compra no tiene saldo a favor' using errcode = 'P0001';
   end if;
-  if (v_from.currency = 'USD' or v_to.currency = 'USD') and (p_rate is null or p_rate <= 0) then
+  if v_from.currency <> v_to.currency and (p_rate is null or p_rate <= 0) then
     raise exception 'Anota a cuánto estaba el dólar' using errcode = 'P0001';
   end if;
 
@@ -710,16 +725,22 @@ begin
     when v_from.currency = 'USD' then round(v_credit * p_rate)::int
     else round(v_credit / p_rate)::int
   end;
-  v_bob := case when v_from.currency = 'BOB' then v_credit else round(v_credit * p_rate)::bigint end;
+  v_bob := case
+    when v_from.currency = 'BOB' then v_credit
+    when v_to.currency = 'BOB' then round(v_credit * p_rate)::bigint
+    -- De dólares a dólares: el saldo vale lo que realmente se pagó por él (sin un dólar nuevo).
+    else (select round(v_credit * sum(amount_bob_cents)::numeric / nullif(sum(amount_purchase_cents), 0))::bigint
+          from public.purchase_payments where purchase_id = p_from_purchase_id and voided_at is null)
+  end;
 
   insert into public.purchase_payments (request_id, purchase_id, currency, amount_cents, rate, amount_purchase_cents, amount_bob_cents, kind, note, created_by)
   values (p_request_id, p_from_purchase_id, v_from.currency, -v_credit,
-          case when v_from.currency = 'USD' or v_to.currency = 'USD' then p_rate end,
+          case when v_from.currency <> v_to.currency then p_rate end,
           -v_credit, -v_bob, 'saldo_usado', 'Saldo usado en otra compra', auth.uid())
   returning id into v_out;
   insert into public.purchase_payments (purchase_id, currency, amount_cents, rate, amount_purchase_cents, amount_bob_cents, kind, linked_payment_id, note, created_by)
   values (p_to_purchase_id, v_to.currency, v_to_amount,
-          case when v_from.currency = 'USD' or v_to.currency = 'USD' then p_rate end,
+          case when v_from.currency <> v_to.currency then p_rate end,
           v_to_amount, v_bob, 'saldo_recibido', v_out, 'Saldo a favor de otra compra', auth.uid())
   returning id into v_in;
   update public.purchase_payments set linked_payment_id = v_in where id = v_out;
@@ -734,6 +755,34 @@ revoke execute on function public.admin_apply_credit(uuid, uuid, uuid, numeric) 
 grant execute on function public.admin_record_payment(uuid, uuid, date, text, int, numeric, text, text) to authenticated;
 grant execute on function public.admin_void_payment(uuid) to authenticated;
 grant execute on function public.admin_apply_credit(uuid, uuid, uuid, numeric) to authenticated;
+
+
+-- Borrar producto (amplía la del panel): un juego que solo estuvo en compras anuladas se borra de verdad;
+-- si está en una compra viva, se oculta como uno vendido.
+create or replace function public.admin_delete_product(p_product_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform public.require_admin();
+  if exists (select 1 from public.order_items i where i.product_id = p_product_id)
+     or exists (select 1 from public.manual_sales s where s.product_id = p_product_id)
+     or exists (select 1 from public.purchase_items i join public.purchases p on p.id = i.purchase_id
+                where i.product_id = p_product_id and p.status <> 'anulada') then
+    update public.products p set is_active = false where p.id = p_product_id;
+    return 'oculto';
+  end if;
+  delete from public.purchase_items i using public.purchases p
+  where i.purchase_id = p.id and p.status = 'anulada' and i.product_id = p_product_id;
+  delete from public.products p where p.id = p_product_id;
+  if not found then
+    raise exception 'Ese producto ya no existe' using errcode = 'P0001';
+  end if;
+  return 'borrado';
+end;
+$$;
 
 -- Permisos --------------------------------------------------------------------------------------------------
 revoke execute on function public.distribute_cents(bigint, bigint[], uuid[]) from public, anon, authenticated;

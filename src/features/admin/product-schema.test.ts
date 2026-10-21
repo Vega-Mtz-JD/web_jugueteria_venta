@@ -75,3 +75,14 @@ describe("productSaveError", () => {
     expect(productSaveError({ code: "XX000", message: "otro" })).toBe("No pudimos guardar el producto. Vuelve a intentarlo.");
   });
 });
+
+describe("montos ambiguos", () => {
+  it("rechaza el formato con punto decimal después de coma de miles y más de 2 decimales", async () => {
+    const { bsTextToCents } = await import("./product-schema");
+    expect(bsTextToCents("1,250.50")).toBeNull();
+    expect(bsTextToCents("6,965")).toBeNull();
+    expect(bsTextToCents("1.250,50")).toBe(125050);
+    expect(bsTextToCents("1250.5")).toBe(125050);
+    expect(bsTextToCents("1.250")).toBe(125000);
+  });
+});

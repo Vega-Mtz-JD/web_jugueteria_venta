@@ -8,9 +8,11 @@ const blank = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefi
 function parseBs(v: unknown): unknown {
   if (typeof v !== "string") return v;
   const t = v.trim();
-  if (t.includes(",")) return Number(t.replace(/\./g, "").replace(",", "."));
+  // Coma decimal (con o sin puntos de miles antes): "1.250,50". Nada después de la coma salvo 1–2 dígitos.
+  if (t.includes(",")) return /^\d{1,3}(\.\d{3})*,\d{1,2}$|^\d+,\d{1,2}$/.test(t) ? Number(t.replace(/\./g, "").replace(",", ".")) : NaN;
   if (/^\d{1,3}(\.\d{3})+$/.test(t)) return Number(t.replace(/\./g, ""));
-  return Number(t);
+  // Punto decimal con a lo más 2 decimales ("1250.5"); "1,250.50" o "6.965" se rechazan: son ambiguos.
+  return /^\d+(\.\d{1,2})?$/.test(t) ? Number(t) : NaN;
 }
 /** Texto en Bs → centavos, o null si no es un monto válido (≥ 0). */
 export function bsTextToCents(text: string): number | null {
