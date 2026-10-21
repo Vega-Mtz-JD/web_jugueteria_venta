@@ -545,6 +545,9 @@ isOneToOne: false
               "email": string,"full_name": string,"phone": string
             }[]
                            },
+"admin_dashboard_sales":
+{ Args: { "p_now"?: string,"p_period": string }; Returns: Json
+                           },
 "admin_dashboard_summary":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -621,6 +624,11 @@ isOneToOne: false
 "create_order":
 { Args: { "p_delivery": Json,"p_invoice": Json,"p_items": Json,"p_request_id": string }; Returns: {
               "order_id": string,"order_number": number
+            }[]
+                           },
+"dashboard_buckets":
+{ Args: { "p_now": string,"p_period": string }; Returns: {
+              "b_from": string,"b_to": string,"idx": number,"kind": string
             }[]
                            },
 "dashboard_period":
