@@ -159,7 +159,7 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 | 2 | Cuentas, carrito, checkout, pago QR y mis pedidos | ✅ En producción (PR #2). Compra real probada por Diego en la vista previa; SMTP con Gmail funcionando |
 | 3A | Panel para vender: portada con números clave, pedidos (revisar, confirmar, rechazar, enviar, reembolsar), productos con fotos, stock con historial, "Vendí", contar estante, ajustes y administradores; instalable | ✅ En producción (PR #3). Probado por Diego en su Android (panel instalado); migraciones `20261020000001`–`…0005` en la nube; Diego es el primer admin |
 | 3B | Inventario y proveedores (compras que suben stock, costos y ganancia) | Por planificar (fines de noviembre) |
-| 4 | Avisos (Web Push a los admins, correos al comprador en cada paso), respaldos cifrados diarios/semanales y consulta diaria contra la pausa | Programado y probado (PR #4); falta configurar la nube con Diego y fusionar |
+| 4 | Avisos (Web Push a los admins, correos al comprador en cada paso), respaldos cifrados diarios/semanales y consulta diaria contra la pausa | ✅ En producción (PR #4). Nube configurada (función `notify`, Vault, secretos, Netlify y GitHub); probado por Diego en su Android (aviso, correos y respaldos cifrados en Actions) |
 | 5 | Dashboard con gráficos (ventas, inventario, ganancia, clientes) | Por planificar (primera quincena de diciembre) |
 | Etapa 2 | Estadísticas avanzadas, demo de portafolio, fotos reales del Illimani, dominio propio | Diciembre |
 
@@ -180,6 +180,14 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
   - el CI hace el build dos veces;
   - `shadcn` está en `dependencies`;
   - `metadataBase` usa una dirección de respaldo si falta `NEXT_PUBLIC_SITE_URL`.
+- **Plan 4** (decisiones en el PR #4; detalles menores):
+  - si `finish_notification` falla tras enviar, el correo se repite a los 5 min; tras un envío exitoso queda el `last_error` del intento anterior;
+  - una excepción fuera de `dispatch` frena el resto del lote 5 min; la decisión reintentar/enviado vive en `index.ts` (sin prueba);
+  - una clave VAPID mal formada frena también los correos (`setVapidDetails` al cargar);
+  - PushToggle: mensaje genérico de conexión para fallas del navegador; "activado" según el navegador;
+  - el ícono pequeño (badge) del aviso es a color (Android lo muestra como un cuadro);
+  - textos de correo: "Venció sin pago." seco, ".." si el motivo termina en punto, nombre con espacio inicial, encomienda: quien recoge puede ser otra persona y paga el pasaje;
+  - la frase de gpg va en la línea de comandos del runner; comparación del secreto no es de tiempo constante.
 - **Plan 3A** (decisiones en el PR #3; detalles menores para el plan 3B):
   - fotos de más de 10 MB se rechazan antes de comprimir (50/108 MP);
   - archivos huérfanos en Storage en algunos errores de subida;

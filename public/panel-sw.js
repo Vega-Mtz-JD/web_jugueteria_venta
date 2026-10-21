@@ -33,14 +33,15 @@ self.addEventListener("notificationclick", (event) => {
   const url = new URL(event.notification.data?.url || "/panel", self.location.origin).href;
   event.waitUntil(
     (async () => {
+      // Si ese pedido ya está abierto, traerlo al frente. Si no, abrirlo: WindowClient.navigate()
+      // sobre una ventana que vuelve del segundo plano no hace nada en Android.
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      const panel = windows.find((w) => new URL(w.url).pathname.startsWith("/panel"));
-      if (panel) {
+      const same = windows.find((w) => w.url === url);
+      if (same) {
         try {
-          await panel.focus();
-          return await panel.navigate(url);
+          return await same.focus();
         } catch {
-          // Ventana que este service worker no controla: abrir el pedido en una nueva.
+          // no se dejó traer al frente: abrirlo de nuevo
         }
       }
       return self.clients.openWindow(url);

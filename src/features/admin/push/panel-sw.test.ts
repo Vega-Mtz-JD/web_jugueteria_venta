@@ -35,19 +35,27 @@ describe("panel-sw.js", () => {
     expect(self.clients.claim).toHaveBeenCalled();
   });
 
-  it("si la ventana del panel no se deja navegar (no controlada), abre el pedido en una nueva", async () => {
-    const panel = { url: "https://ludiq.bo/panel/mas", focus: vi.fn(async () => {}), navigate: vi.fn(async () => Promise.reject(new TypeError("not controlled"))) };
+  it("con el panel abierto en otra pantalla, abre el pedido (navigate() no es confiable en Android)", async () => {
+    const panel = { url: "https://ludiq.bo/panel/mas", focus: vi.fn(async () => {}), navigate: vi.fn(async () => null) };
     const { listeners, self } = loadWorker([panel]);
     await fire(listeners.notificationclick, click("/panel/pedidos/abc"));
     expect(self.clients.openWindow).toHaveBeenCalledWith("https://ludiq.bo/panel/pedidos/abc");
+    expect(panel.navigate).not.toHaveBeenCalled();
   });
 
-  it("con una ventana del panel controlada, la lleva al pedido", async () => {
-    const panel = { url: "https://ludiq.bo/panel", focus: vi.fn(async () => {}), navigate: vi.fn(async () => ({})) };
+  it("si ese pedido ya está abierto, solo lo trae al frente", async () => {
+    const panel = { url: "https://ludiq.bo/panel/pedidos/abc", focus: vi.fn(async () => {}), navigate: vi.fn(async () => null) };
     const { listeners, self } = loadWorker([panel]);
     await fire(listeners.notificationclick, click("/panel/pedidos/abc"));
-    expect(panel.navigate).toHaveBeenCalledWith("https://ludiq.bo/panel/pedidos/abc");
+    expect(panel.focus).toHaveBeenCalled();
     expect(self.clients.openWindow).not.toHaveBeenCalled();
+  });
+
+  it("si traerlo al frente falla, lo abre", async () => {
+    const panel = { url: "https://ludiq.bo/panel/pedidos/abc", focus: vi.fn(async () => Promise.reject(new Error("Not allowed"))), navigate: vi.fn() };
+    const { listeners, self } = loadWorker([panel]);
+    await fire(listeners.notificationclick, click("/panel/pedidos/abc"));
+    expect(self.clients.openWindow).toHaveBeenCalledWith("https://ludiq.bo/panel/pedidos/abc");
   });
 
   it("sin ventanas abiertas, abre el pedido", async () => {
