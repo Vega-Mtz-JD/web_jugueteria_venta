@@ -161,3 +161,26 @@ export async function emailWithSubject(to: string, subject: string): Promise<{ s
   }
   throw new Error(`No llegó a ${to} un correo «${subject}…»`);
 }
+
+/** Proveedor propio de una prueba. */
+export async function createSupplier(values: { name?: string; whatsapp?: string; contactName?: string } = {}) {
+  const name = values.name ?? `Proveedor e2e ${crypto.randomUUID().slice(0, 6)}`;
+  const { data, error } = await adminClient()
+    .from("suppliers")
+    .insert({ name, whatsapp: values.whatsapp ?? null, contact_name: values.contactName ?? null })
+    .select("id, name")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/** Compra encargada mínima, creada directo con la clave de servicio (las RPC piden sesión de admin). */
+export async function createRawPurchase(supplierId: string, currency: "BOB" | "USD" = "BOB") {
+  const { data, error } = await adminClient()
+    .from("purchases")
+    .insert({ request_id: crypto.randomUUID(), supplier_id: supplierId, currency })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
