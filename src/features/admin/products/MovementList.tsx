@@ -24,6 +24,8 @@ function reasonLabel(m: StockMovement): string {
       return "Venta anulada";
     case "compra":
       return "Compra";
+    case "anulacion_compra":
+      return "Compra anulada";
     default:
       return m.note ?? "Ajuste";
   }

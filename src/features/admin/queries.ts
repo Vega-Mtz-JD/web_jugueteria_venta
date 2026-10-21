@@ -149,7 +149,7 @@ export async function listAdminProducts(opts: { q?: string; categoryId?: string;
   });
 }
 
-export type StockReason = "alta" | "venta_web" | "devolucion_web" | "venta_manual" | "anulacion_venta_manual" | "ajuste" | "compra";
+export type StockReason = "alta" | "venta_web" | "devolucion_web" | "venta_manual" | "anulacion_venta_manual" | "ajuste" | "compra" | "anulacion_compra";
 
 export type StockMovement = {
   id: number;
@@ -316,4 +316,32 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   const { data, error } = await supabase.rpc("admin_dashboard_summary");
   if (error) throw error;
   return data as unknown as DashboardSummary;
+}
+
+// Costo y ganancia de un producto -------------------------------------------------------------------------
+
+export type ProductCostSummary = {
+  currentUnitCostCents: number | null;
+  costOrigin: "compra" | "inicial" | null;
+  averageUnitCostCents: number | null;
+  initialCostCents: number | null;
+  lastPurchase: {
+    purchaseId: string;
+    supplierId: string;
+    supplierName: string;
+    supplierWhatsapp: string | null;
+    receivedAt: string;
+    quantity: number;
+    unitCostCents: number;
+  } | null;
+  purchases: { purchaseId: string; supplierName: string; receivedAt: string | null; status: string; quantity: number; unitCostCents: number | null }[];
+  sold: { units: number; unitsWithoutCost: number; revenueCents: number; profitCents: number };
+};
+
+export async function getProductCostSummary(productId: string): Promise<ProductCostSummary | null> {
+  if (!UUID.test(productId)) return null;
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("admin_product_cost_summary", { p_product_id: productId });
+  if (error) throw error;
+  return data as unknown as ProductCostSummary;
 }

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRightIcon, SettingsIcon, StoreIcon, UsersIcon } from "lucide-react";
+import { ChevronRightIcon, ShoppingCartIcon, SettingsIcon, StoreIcon, TruckIcon, UsersIcon } from "lucide-react";
 import { PushToggle } from "@/features/admin/push/PushToggle";
 
 export const metadata: Metadata = { title: "Más" };
 
 const LINKS = [
+  { href: "/panel/compras", label: "Compras", hint: "Lo que debo, lo que falta llegar y lo que compré", icon: ShoppingCartIcon },
+  { href: "/panel/proveedores", label: "Proveedores", hint: "A quién le compro y cuánto le debo", icon: TruckIcon },
   { href: "/panel/ajustes", label: "Ajustes", hint: "Datos de la tienda, QR, envíos y categorías", icon: SettingsIcon },
   { href: "/panel/ajustes#administradores", label: "Administradores", hint: "Quién puede entrar al panel", icon: UsersIcon },
   { href: "/", label: "Ver la tienda", hint: "Lo que ven los compradores", icon: StoreIcon },
