@@ -8,14 +8,15 @@ import { MovementList } from "@/features/admin/products/MovementList";
 import { PhotoManager } from "@/features/admin/products/PhotoManager";
 import { ProductForm } from "@/features/admin/products/ProductForm";
 import { StockControls } from "@/features/admin/products/StockControls";
-import { getAdminProduct } from "@/features/admin/queries";
+import { CostPanel } from "@/features/admin/purchases/CostPanel";
+import { getAdminProduct, getProductCostSummary } from "@/features/admin/queries";
 import { listCategories } from "@/features/catalog/cached";
 
 export const metadata: Metadata = { title: "Producto" };
 
 async function ProductEditor({ params, searchParams }: PageProps<"/panel/productos/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [product, categories] = await Promise.all([getAdminProduct(id), listCategories()]);
+  const [product, categories, costs] = await Promise.all([getAdminProduct(id), listCategories(), getProductCostSummary(id)]);
   if (!product) notFound();
 
   return (
@@ -45,6 +46,12 @@ async function ProductEditor({ params, searchParams }: PageProps<"/panel/product
         <h2 className="mb-3 font-serif text-xl font-bold">Stock</h2>
         <StockControls product={product} full />
       </section>
+
+      {costs && (
+        <div className="mt-8">
+          <CostPanel productId={product.id} productName={product.name} priceCents={product.priceCents} summary={costs} />
+        </div>
+      )}
 
       <section className="mt-8 max-w-2xl">
         <h2 className="mb-3 font-serif text-xl font-bold">Datos</h2>

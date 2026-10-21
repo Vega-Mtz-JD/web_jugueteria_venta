@@ -3,9 +3,9 @@
 import { z } from "zod";
 import { invalidateCatalog } from "@/features/catalog/invalidate";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { adminErrorMessage } from "./errors";
+import { adminErrorMessage, productSaveError } from "./errors";
 import { isAdminSession } from "./guard";
-import { productInputSchema, type ProductInput } from "./product-schema";
+import { bsTextToCents, productInputSchema, type ProductInput } from "./product-schema";
 import { nextFreeSlug, slugify } from "./slug";
 
 export type Result<T = object> = ({ ok: true } & T) | { error: string };
@@ -47,7 +47,7 @@ export async function saveProductAction(
     if (!uuid.safeParse(productId).success) return { error: "No encontramos ese producto" };
     // El stock no se edita aquí (va por contar estante o ±) y la dirección web no cambia: los enlaces compartidos siguen sirviendo.
     const { error } = await supabase.from("products").update(row).eq("id", productId);
-    if (error) return { error: "No pudimos guardar el producto. Vuelve a intentarlo." };
+    if (error) return { error: productSaveError(error) };
     invalidateCatalog();
     return { ok: true, id: productId };
   }
@@ -183,5 +183,16 @@ export async function voidManualSaleAction(saleId: string): Promise<Result> {
   const { error } = await supabase.rpc("admin_void_manual_sale", { p_sale_id: saleId });
   if (error) return { error: adminErrorMessage(error, "No pudimos anular la venta. Vuelve a intentarlo.") };
   invalidateCatalog();
+  return { ok: true };
+}
+
+/** "Costo de lo que ya tenías" (Bs); vacío lo borra. */
+export async function setInitialCostAction(productId: string, costText: string): Promise<Result> {
+  if (!uuid.safeParse(productId).success) return { error: "No encontramos ese producto" };
+  const cents = costText.trim() === "" ? null : bsTextToCents(costText);
+  if (costText.trim() !== "" && cents === null) return { error: "Escribe el costo en Bs" };
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.rpc("admin_set_initial_cost", { p_product_id: productId, p_cost_cents: (cents ?? null) as number });
+  if (error) return { error: adminErrorMessage(error, "No pudimos guardar el costo. Vuelve a intentarlo.") };
   return { ok: true };
 }

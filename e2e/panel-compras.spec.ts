@@ -1,37 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import { newPurchase } from "./helpers/purchases";
 import { loginAsAdmin } from "./helpers/admin";
 import { adminClient, createProduct, createSupplier } from "./helpers/supabase-admin";
-
-type Line = { product?: string; newGame?: string; quantity: string; price: string };
-
-/** Llena "Nueva compra" y la guarda; devuelve el id de la compra. */
-async function newPurchase(page: Page, o: { supplier: string; currency?: "Bolivianos" | "Dólares"; lines: Line[]; advance?: { amount: string; currency?: "Bolivianos" | "Dólares"; rate?: string } }) {
-  await page.goto("/panel/compras/nueva");
-  await page.getByRole("combobox", { name: "Proveedor" }).selectOption({ label: o.supplier });
-  if (o.currency) await page.getByRole("radio", { name: o.currency }).check();
-  for (const [i, l] of o.lines.entries()) {
-    if (i > 0) await page.getByRole("button", { name: "Agregar otro producto" }).click();
-    const row = page.getByRole("group", { name: `Producto ${i + 1}` });
-    if (l.newGame) {
-      await row.getByRole("checkbox", { name: "Es un juego nuevo" }).check();
-      await row.getByLabel("Nombre del juego nuevo").fill(l.newGame);
-      await row.getByRole("combobox", { name: "Categoría del juego nuevo" }).selectOption({ label: "Estrategia" });
-    } else {
-      await row.getByRole("combobox", { name: "Producto" }).selectOption({ label: l.product! });
-    }
-    await row.getByLabel("Cantidad").fill(l.quantity);
-    await row.getByLabel("Precio por unidad").fill(l.price);
-  }
-  if (o.advance) {
-    const adv = page.getByRole("group", { name: "Adelanto (opcional)" });
-    await adv.getByLabel("Monto del adelanto").fill(o.advance.amount);
-    if (o.advance.currency) await adv.getByRole("combobox", { name: "Moneda del adelanto" }).selectOption({ label: o.advance.currency });
-    if (o.advance.rate) await adv.getByLabel("A cuánto estaba el dólar").fill(o.advance.rate);
-  }
-  await page.getByRole("button", { name: "Guardar compra" }).click();
-  await expect(page).toHaveURL(/\/panel\/compras\/[0-9a-f-]{36}$/);
-  return page.url().split("/").at(-1)!;
-}
 
 const isAction = (r: { method(): string; headers(): Record<string, string> }) => r.method() === "POST" && "next-action" in r.headers();
 

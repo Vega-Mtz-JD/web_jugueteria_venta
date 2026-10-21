@@ -67,3 +67,11 @@ describe("bsTextToCents y centsToBsText", () => {
     expect(centsToBsText(null)).toBe("");
   });
 });
+
+describe("productSaveError", () => {
+  it("la base no deja mostrar un producto con precio 0", async () => {
+    const { productSaveError } = await import("../admin/errors");
+    expect(productSaveError({ code: "23514", message: 'violates check constraint "products_visible_price"' })).toBe("Pon un precio de venta antes de mostrar el producto");
+    expect(productSaveError({ code: "XX000", message: "otro" })).toBe("No pudimos guardar el producto. Vuelve a intentarlo.");
+  });
+});
