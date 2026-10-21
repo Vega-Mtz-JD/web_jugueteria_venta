@@ -20,7 +20,7 @@ async function Supplier({ params }: { params: PageProps<"/panel/proveedores/[id]
   const s = await getSupplier(id);
   if (!s) notFound();
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight">{s.name}</h1>
         <p className="mt-1">

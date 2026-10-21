@@ -47,7 +47,7 @@ async function Purchase({ params, searchParams }: PageProps<"/panel/compras/[id]
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <div>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-extrabold tracking-tight">Compra a {p.supplier.name}</h1>

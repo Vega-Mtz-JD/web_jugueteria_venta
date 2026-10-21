@@ -46,7 +46,7 @@ async function Suppliers({ searchParams }: { searchParams: PageProps<"/panel/pro
 
 export default function ProveedoresPage(props: PageProps<"/panel/proveedores">) {
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       <h1 className="text-3xl font-extrabold tracking-tight">Proveedores</h1>
       <NewSupplierForm />
       <Suspense fallback={<div aria-hidden className="h-48 animate-pulse rounded-3xl bg-crema-2" />}>

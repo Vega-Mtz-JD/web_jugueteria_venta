@@ -122,7 +122,7 @@ async function History({ searchParams }: { searchParams: PageProps<"/panel/compr
 
 export default function ComprasPage(props: PageProps<"/panel/compras">) {
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-extrabold tracking-tight">Compras</h1>
         <Button asChild size="lg">
