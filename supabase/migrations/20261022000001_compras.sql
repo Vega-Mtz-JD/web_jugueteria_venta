@@ -184,14 +184,34 @@ begin
 end;
 $$;
 
--- Dólar con el que se valoran los productos de una compra en USD (la tarea 2 suma los pagos).
+-- Dólar con el que se valoran los productos de una compra en USD: lo pagado, con el dólar de cada
+-- pago; lo que falta pagar, con el dólar anotado al llegar. Pagada del todo, el costo en Bs es
+-- exactamente lo que salió del bolsillo.
 create or replace function public.purchase_effective_rate(p_purchase_id uuid)
 returns numeric
-language sql
+language plpgsql
 stable
 set search_path = ''
 as $$
-  select arrival_rate from public.purchases where id = p_purchase_id;
+declare
+  v public.purchases%rowtype;
+  v_total numeric;
+  v_paid numeric;
+  v_paid_bob numeric;
+begin
+  select * into v from public.purchases where id = p_purchase_id;
+  select coalesce(sum(coalesce(quantity_received, 0)::bigint * unit_price_cents), 0) into v_total
+  from public.purchase_items where purchase_id = p_purchase_id;
+  select coalesce(sum(amount_purchase_cents), 0), coalesce(sum(amount_bob_cents), 0) into v_paid, v_paid_bob
+  from public.purchase_payments where purchase_id = p_purchase_id and voided_at is null;
+  if v_total = 0 then
+    return v.arrival_rate;
+  end if;
+  if v_paid >= v_total and v_paid > 0 then
+    return v_paid_bob / v_paid;
+  end if;
+  return (v_paid_bob + (v_total - v_paid) * v.arrival_rate) / v_total;
+end;
 $$;
 
 -- Costo real de cada línea recibida: valor en Bs + parte del envío (por el valor de cada línea).
@@ -561,6 +581,159 @@ begin
   perform public.recompute_purchase_costs(p_purchase_id);
 end;
 $$;
+
+-- Pagos ------------------------------------------------------------------------------------------------------
+-- Un pago en otra moneda que la compra se convierte con el dólar de ese pago (redondeo único al guardar).
+create or replace function public.admin_record_payment(
+  p_request_id uuid, p_purchase_id uuid, p_paid_on date, p_currency text, p_amount_cents int, p_rate numeric, p_note text, p_kind text default 'pago'
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v public.purchases%rowtype;
+  v_id uuid;
+  v_sign int;
+  v_purchase_amount int;
+  v_bob bigint;
+begin
+  perform public.require_admin();
+  select id into v_id from public.purchase_payments where request_id = p_request_id;
+  if found then
+    return v_id; -- reintento del mismo pago
+  end if;
+  select * into v from public.purchases where id = p_purchase_id for update;
+  if not found then
+    raise exception 'Esa compra no existe' using errcode = 'P0001';
+  end if;
+  if v.status = 'anulada' then
+    raise exception 'Esta compra está anulada' using errcode = 'P0001';
+  end if;
+  if p_kind is null or p_kind not in ('pago', 'devolucion') then
+    raise exception 'Tipo de pago no válido' using errcode = 'P0001';
+  end if;
+  if p_currency is null or p_currency not in ('BOB', 'USD') then
+    raise exception 'Elige si pagaste en bolivianos o en dólares' using errcode = 'P0001';
+  end if;
+  if p_amount_cents is null or p_amount_cents <= 0 or p_amount_cents > 100000000 then
+    raise exception 'Escribe el monto del pago' using errcode = 'P0001';
+  end if;
+  if (p_currency = 'USD' or v.currency = 'USD') and (p_rate is null or p_rate <= 0) then
+    raise exception 'Anota a cuánto estaba el dólar' using errcode = 'P0001';
+  end if;
+
+  v_sign := case when p_kind = 'devolucion' then -1 else 1 end;
+  v_purchase_amount := case
+    when p_currency = v.currency then p_amount_cents
+    when p_currency = 'BOB' then round(p_amount_cents / p_rate)::int  -- Bs que pagan dólares
+    else round(p_amount_cents * p_rate)::int                          -- dólares que pagan Bs
+  end;
+  v_bob := case when p_currency = 'BOB' then p_amount_cents else round(p_amount_cents * p_rate)::bigint end;
+
+  insert into public.purchase_payments (request_id, purchase_id, paid_on, currency, amount_cents, rate, amount_purchase_cents, amount_bob_cents, kind, note, created_by)
+  values (p_request_id, p_purchase_id, coalesce(p_paid_on, current_date), p_currency, v_sign * p_amount_cents,
+          case when p_currency = 'USD' or v.currency = 'USD' then p_rate end,
+          v_sign * v_purchase_amount, v_sign * v_bob, p_kind, nullif(trim(p_note), ''), auth.uid())
+  returning id into v_id;
+  perform public.recompute_purchase_costs(p_purchase_id);
+  return v_id;
+end;
+$$;
+
+create or replace function public.admin_void_payment(p_payment_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v public.purchase_payments%rowtype;
+begin
+  perform public.require_admin();
+  select * into v from public.purchase_payments where id = p_payment_id for update;
+  if not found then
+    raise exception 'Ese pago no existe' using errcode = 'P0001';
+  end if;
+  if v.voided_at is not null then
+    raise exception 'Este pago ya estaba anulado' using errcode = 'P0001';
+  end if;
+  -- Un traspaso de saldo se anula entero (los dos lados).
+  update public.purchase_payments set voided_at = now()
+  where voided_at is null and (id = p_payment_id or id = v.linked_payment_id or linked_payment_id = p_payment_id);
+  perform public.recompute_purchase_costs(p.purchase_id)
+  from (select distinct purchase_id from public.purchase_payments
+        where id = p_payment_id or id = v.linked_payment_id or linked_payment_id = p_payment_id) p;
+end;
+$$;
+
+-- Saldo a favor de una compra → pago de otra compra del mismo proveedor (en una sola operación).
+create or replace function public.admin_apply_credit(p_request_id uuid, p_from_purchase_id uuid, p_to_purchase_id uuid, p_rate numeric)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_from public.purchases%rowtype;
+  v_to public.purchases%rowtype;
+  v_credit bigint;
+  v_to_amount int;
+  v_bob bigint;
+  v_out uuid;
+  v_in uuid;
+begin
+  perform public.require_admin();
+  if exists (select 1 from public.purchase_payments where request_id = p_request_id) then
+    return; -- reintento
+  end if;
+  perform 1 from public.purchases where id in (p_from_purchase_id, p_to_purchase_id) order by id for update;
+  select * into v_from from public.purchases where id = p_from_purchase_id;
+  select * into v_to from public.purchases where id = p_to_purchase_id;
+  if v_from.id is null or v_to.id is null or v_from.id = v_to.id or v_from.status = 'anulada' or v_to.status = 'anulada' then
+    raise exception 'Elige otra compra para usar el saldo' using errcode = 'P0001';
+  end if;
+  if v_from.supplier_id <> v_to.supplier_id then
+    raise exception 'Solo se puede usar el saldo en una compra del mismo proveedor' using errcode = 'P0001';
+  end if;
+  select -debt_cents into v_credit from public.purchase_balances where id = p_from_purchase_id;
+  if coalesce(v_credit, 0) <= 0 then
+    raise exception 'Esta compra no tiene saldo a favor' using errcode = 'P0001';
+  end if;
+  if (v_from.currency = 'USD' or v_to.currency = 'USD') and (p_rate is null or p_rate <= 0) then
+    raise exception 'Anota a cuánto estaba el dólar' using errcode = 'P0001';
+  end if;
+
+  v_to_amount := case
+    when v_from.currency = v_to.currency then v_credit
+    when v_from.currency = 'USD' then round(v_credit * p_rate)::int
+    else round(v_credit / p_rate)::int
+  end;
+  v_bob := case when v_from.currency = 'BOB' then v_credit else round(v_credit * p_rate)::bigint end;
+
+  insert into public.purchase_payments (request_id, purchase_id, currency, amount_cents, rate, amount_purchase_cents, amount_bob_cents, kind, note, created_by)
+  values (p_request_id, p_from_purchase_id, v_from.currency, -v_credit,
+          case when v_from.currency = 'USD' or v_to.currency = 'USD' then p_rate end,
+          -v_credit, -v_bob, 'saldo_usado', 'Saldo usado en otra compra', auth.uid())
+  returning id into v_out;
+  insert into public.purchase_payments (purchase_id, currency, amount_cents, rate, amount_purchase_cents, amount_bob_cents, kind, linked_payment_id, note, created_by)
+  values (p_to_purchase_id, v_to.currency, v_to_amount,
+          case when v_from.currency = 'USD' or v_to.currency = 'USD' then p_rate end,
+          v_to_amount, v_bob, 'saldo_recibido', v_out, 'Saldo a favor de otra compra', auth.uid())
+  returning id into v_in;
+  update public.purchase_payments set linked_payment_id = v_in where id = v_out;
+  perform public.recompute_purchase_costs(p_from_purchase_id);
+  perform public.recompute_purchase_costs(p_to_purchase_id);
+end;
+$$;
+
+revoke execute on function public.admin_record_payment(uuid, uuid, date, text, int, numeric, text, text) from public, anon;
+revoke execute on function public.admin_void_payment(uuid) from public, anon;
+revoke execute on function public.admin_apply_credit(uuid, uuid, uuid, numeric) from public, anon;
+grant execute on function public.admin_record_payment(uuid, uuid, date, text, int, numeric, text, text) to authenticated;
+grant execute on function public.admin_void_payment(uuid) to authenticated;
+grant execute on function public.admin_apply_credit(uuid, uuid, uuid, numeric) to authenticated;
 
 -- Permisos --------------------------------------------------------------------------------------------------
 revoke execute on function public.distribute_cents(bigint, bigint[], uuid[]) from public, anon, authenticated;

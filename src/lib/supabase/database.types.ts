@@ -476,6 +476,9 @@ isOneToOne: false
             "admin_adjust_stock":
 { Args: { "p_delta": number,"p_product_id": string }; Returns: number
                            },
+"admin_apply_credit":
+{ Args: { "p_from_purchase_id": string,"p_rate": number,"p_request_id": string,"p_to_purchase_id": string }; Returns: undefined
+                           },
 "admin_correct_arrival":
 { Args: { "p_arrival_rate": number,"p_purchase_id": string,"p_received": Json,"p_shipping_cents": number }; Returns: undefined
                            },
@@ -507,6 +510,9 @@ isOneToOne: false
 "admin_record_manual_sale":
 { Args: { "p_channel": string,"p_note"?: string,"p_product_id": string,"p_quantity": number,"p_request_id"?: string,"p_unit_price_cents": number }; Returns: string
                            },
+"admin_record_payment":
+{ Args: { "p_amount_cents": number,"p_currency": string,"p_kind"?: string,"p_note": string,"p_paid_on": string,"p_purchase_id": string,"p_rate": number,"p_request_id": string }; Returns: string
+                           },
 "admin_reserved_units":
 { Args: Record<PropertyKey, never>; Returns: {
               "product_id": string,"quantity": number
@@ -529,6 +535,9 @@ isOneToOne: false
                            },
 "admin_void_manual_sale":
 { Args: { "p_sale_id": string }; Returns: undefined
+                           },
+"admin_void_payment":
+{ Args: { "p_payment_id": string }; Returns: undefined
                            },
 "admin_void_purchase":
 { Args: { "p_purchase_id": string }; Returns: undefined
