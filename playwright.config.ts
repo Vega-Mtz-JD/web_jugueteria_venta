@@ -19,7 +19,8 @@ export default defineConfig({
   // que cuentan los productos del seed.
   projects: [
     { name: "desktop", testIgnore: [PANEL, PORTADA], use: desktop },
-    { name: "mobile", testIgnore: [PANEL, PORTADA], use: mobile },
+    // Los avisos no dependen de la pantalla y la prueba de push usa un puerto fijo: solo en PC.
+    { name: "mobile", testIgnore: [PANEL, PORTADA, /avisos-correo\.spec\.ts/], use: mobile },
     { name: "desktop-panel", testMatch: PANEL, dependencies: ["desktop", "mobile"], use: desktop },
     // Ajustes cambia datos de toda la tienda: solo en un proyecto.
     { name: "mobile-panel", testMatch: PANEL, testIgnore: /panel-ajustes\.spec\.ts/, dependencies: ["desktop", "mobile"], use: mobile },

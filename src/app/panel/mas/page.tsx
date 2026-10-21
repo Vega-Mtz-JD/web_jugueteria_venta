@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRightIcon, SettingsIcon, StoreIcon, UsersIcon } from "lucide-react";
+import { PushToggle } from "@/features/admin/push/PushToggle";
 
 export const metadata: Metadata = { title: "Más" };
 
@@ -14,6 +15,9 @@ export default function MasPage() {
   return (
     <>
       <h1 className="mb-6 text-3xl font-extrabold tracking-tight">Más</h1>
+      <div className="mb-6">
+        <PushToggle />
+      </div>
       <ul className="grid gap-3">
         {LINKS.map(({ href, label, hint, icon: Icon }) => (
           <li key={href}>

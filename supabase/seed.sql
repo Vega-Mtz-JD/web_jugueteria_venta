@@ -44,3 +44,8 @@ insert into public.product_images (product_id, path, alt, sort_order)
 select p.id, '/samples/' || p.slug || '.svg', p.name, 0
 from public.products p
 where p.slug <> 'cubo-4x4-magnetico';
+
+-- Notificador local (solo Supabase en Docker): la base despierta a la Edge Function "notify".
+-- En la nube estos valores se ponen a mano en Vault (docs/hosting.md); nunca van en una migración.
+select vault.create_secret('http://supabase_kong_web_venta:8000/functions/v1/notify', 'notify_url');
+select vault.create_secret('local-notify-secret', 'notify_secret');

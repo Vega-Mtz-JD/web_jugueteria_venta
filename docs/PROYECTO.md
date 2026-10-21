@@ -82,6 +82,7 @@ Navegador ──► Netlify (Next.js 16 vía adaptador OpenNext)
   - datos de entrega, factura, totales, número `#0231`, motivo de rechazo y guía de la encomienda.
 - `order_items` (con una copia del nombre y del precio), `order_events` (historial), `payment_proofs` (todas las capturas); `orders.shipping_proof_path` (foto del comprobante de la encomienda, bucket privado `shipping-proofs`).
 - `stock_movements` (plan 3A): **cada** cambio de `products.stock` queda registrado por el trigger `products_log_stock` con su motivo (`alta`, `venta_web`, `devolucion_web`, `venta_manual`, `anulacion_venta_manual`, `ajuste`, `compra`), que indica quien cambia el stock con `set_config('app.stock_reason' / 'app.stock_ref' / 'app.stock_note')` (función `set_stock_reason`). La suma de los movimientos de un producto es su stock.
+- `notification_outbox` y `push_subscriptions` (plan 4): un trigger sobre `order_events` encola cada aviso (`pedido_recibido`, `pago_por_revisar`, `nueva_captura`, `pago_confirmado`, `pago_rechazado`, `enviado`, `listo_para_recoger`, `cancelado`, `reembolsado`, `prueba`); `wake_notifier()` despierta por `pg_net` a la Edge Function `supabase/functions/notify` (URL y secreto en Vault), que usa `claim_notifications` / `finish_notification` (solo `service_role`). Los textos están en `supabase/functions/_shared/messages.ts`.
 - `manual_sales` (plan 3A): ventas en la tienda o por WhatsApp (`tienda` / `whatsapp`), con anulación.
 - **Stock = disponible.** Unidades **apartadas** = las de pedidos `esperando_pago`, `en_revision`, `rechazado`, `pagado` o `listo_para_recoger` (ya descontadas, pero todavía en la tienda). "Contar estante" guarda `contadas − apartadas`.
 - **Funciones del panel** (todas `security definer`, validan `require_admin()` ⇒ `42501`): `admin_set_order_status` (tabla de transiciones y control de concurrencia con el estado esperado), `admin_record_manual_sale`, `admin_void_manual_sale`, `admin_count_shelf`, `admin_adjust_stock`, `admin_reserved_units`, `admin_delete_product` (oculta si tuvo ventas), `admin_set_admin` / `admin_list_admins`, `admin_customer_contact`, `admin_dashboard_summary` (venta = productos de pedidos con pago confirmado + ventas manuales; envíos aparte; días en `America/La_Paz`).
@@ -158,7 +159,7 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 | 2 | Cuentas, carrito, checkout, pago QR y mis pedidos | ✅ En producción (PR #2). Compra real probada por Diego en la vista previa; SMTP con Gmail funcionando |
 | 3A | Panel para vender: portada con números clave, pedidos (revisar, confirmar, rechazar, enviar, reembolsar), productos con fotos, stock con historial, "Vendí", contar estante, ajustes y administradores; instalable | ✅ En producción (PR #3). Probado por Diego en su Android (panel instalado); migraciones `20261020000001`–`…0005` en la nube; Diego es el primer admin |
 | 3B | Inventario y proveedores (compras que suben stock, costos y ganancia) | Por planificar (fines de noviembre) |
-| 4 | Avisos (Web Push al dueño, correos al comprador), respaldos y consulta diaria contra la pausa | Por planificar |
+| 4 | Avisos (Web Push a los admins, correos al comprador en cada paso), respaldos cifrados diarios/semanales y consulta diaria contra la pausa | ✅ En producción (PR #4). Nube configurada (función `notify`, Vault, secretos, Netlify y GitHub); probado por Diego en su Android (aviso, correos y respaldos cifrados en Actions) |
 | 5 | Dashboard con gráficos (ventas, inventario, ganancia, clientes) | Por planificar (primera quincena de diciembre) |
 | Etapa 2 | Estadísticas avanzadas, demo de portafolio, fotos reales del Illimani, dominio propio | Diciembre |
 
@@ -179,6 +180,14 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
   - el CI hace el build dos veces;
   - `shadcn` está en `dependencies`;
   - `metadataBase` usa una dirección de respaldo si falta `NEXT_PUBLIC_SITE_URL`.
+- **Plan 4** (decisiones en el PR #4; detalles menores):
+  - si `finish_notification` falla tras enviar, el correo se repite a los 5 min; tras un envío exitoso queda el `last_error` del intento anterior;
+  - una excepción fuera de `dispatch` frena el resto del lote 5 min; la decisión reintentar/enviado vive en `index.ts` (sin prueba);
+  - una clave VAPID mal formada frena también los correos (`setVapidDetails` al cargar);
+  - PushToggle: mensaje genérico de conexión para fallas del navegador; "activado" según el navegador;
+  - el ícono pequeño (badge) del aviso es a color (Android lo muestra como un cuadro);
+  - textos de correo: "Venció sin pago." seco, ".." si el motivo termina en punto, nombre con espacio inicial, encomienda: quien recoge puede ser otra persona y paga el pasaje;
+  - la frase de gpg va en la línea de comandos del runner; comparación del secreto no es de tiempo constante.
 - **Plan 3A** (decisiones en el PR #3; detalles menores para el plan 3B):
   - fotos de más de 10 MB se rechazan antes de comprimir (50/108 MP);
   - archivos huérfanos en Storage en algunos errores de subida;
@@ -213,6 +222,9 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 17. **Next 16 conserva la página anterior oculta (Activity)** en el DOM: en las e2e, `getByLabel` puede encontrar dos campos; usar `getByRole`, que ignora lo oculto.
 18. **Un elemento flex con filas que se desplazan** (`overflow-x-auto` + `whitespace-nowrap`) ensancha la página si no tiene `min-w-0`; en una grilla, `grid-cols-[minmax(0,1fr)]` con textos `truncate`.
 19. **Pruebas que cambian datos compartidos** (stock de un producto del seed, ajustes, totales de la portada) no deben correr a la vez en PC y celular: usar datos propios (`createProduct`), un solo proyecto o un proyecto que corre al final.
+20. **Edge Functions en local:** el runtime solo carga las funciones que existen al hacer `supabase start` (una nueva requiere reiniciar) y los secretos locales van en `supabase/functions/.env` — **nunca** en `[edge_runtime.secrets]` de `config.toml`, porque la CLI los sube a la nube (pasó: producción quedó con el buzón de prueba y claves VAPID locales). Desde dentro de Docker se usan los alias `kong` e `inbucket`: el resolvedor de Deno rechaza nombres con guion bajo (`supabase_inbucket_web_venta`).
+21. **`web-push` solo habla HTTPS** y Chromium sin interfaz no puede suscribirse a un servicio de push: en las e2e se reemplaza `PushManager` y el permiso; el aviso real se prueba en el celular.
+22. **Cada corrida e2e crea admins nuevos** y cada aviso de pago escribe a todos: `reset-db` les quita el rol al empezar.
 
 ## 9. Cuentas y servicios
 

@@ -1,8 +1,7 @@
 "use server";
 
-import { updateTag } from "next/cache";
 import { z } from "zod";
-import { CATALOG_TAG } from "@/features/catalog/cached";
+import { invalidateCatalog } from "@/features/catalog/invalidate";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { adminErrorMessage } from "./errors";
 import { isAdminSession } from "./guard";
@@ -55,7 +54,7 @@ export async function saveStoreAction(input: z.input<typeof storeInput>): Promis
     .update({ store_name: v.storeName, tagline: v.tagline || null, whatsapp_phone: v.whatsappPhone || null, address: v.address || null, pickup_hours: v.pickupHours || null })
     .eq("id", 1);
   if (error) return dbError(error);
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -67,7 +66,7 @@ export async function saveFeesAction(input: { homeBs: string; meetingBs: string 
   const supabase = await createServerSupabase();
   const { error } = await supabase.from("store_settings").update({ delivery_fee_home_cents: home, delivery_fee_meeting_cents: meeting }).eq("id", 1);
   if (error) return dbError(error);
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -85,7 +84,7 @@ export async function saveZoneAction(input: z.input<typeof zoneInput>): Promise<
   const supabase = await createServerSupabase();
   const { error } = v.id ? await supabase.from("delivery_zones").update(row).eq("id", v.id) : await supabase.from("delivery_zones").insert(row);
   if (error) return dbError(error, { duplicate: "Ya hay una zona con ese nombre" });
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -101,7 +100,7 @@ export async function savePointAction(input: z.input<typeof pointInput>): Promis
   const supabase = await createServerSupabase();
   const { error } = v.id ? await supabase.from("meeting_points").update(row).eq("id", v.id) : await supabase.from("meeting_points").insert(row);
   if (error) return dbError(error, { duplicate: "Ya hay un punto con ese nombre" });
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -114,11 +113,11 @@ async function deleteOrDeactivate(table: "delivery_zones" | "meeting_points", ro
   if (error?.code === "23503") {
     const { error: e2 } = await supabase.from(table).update({ is_active: false }).eq("id", rowId);
     if (e2) return dbError(e2);
-    updateTag(CATALOG_TAG);
+    invalidateCatalog();
     return { ok: true, outcome: "desactivado" };
   }
   if (error) return dbError(error);
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true, outcome: "borrado" };
 }
 
@@ -164,7 +163,7 @@ export async function saveWalletAction(input: z.input<typeof walletInput>): Prom
   if (error) return dbError(error, { duplicate: "Ya hay una billetera con ese nombre" });
   // El QR anterior ya no se usa (los de ejemplo viven en /public y no se tocan).
   if (previous && !previous.startsWith("/")) await supabase.storage.from("store-assets").remove([previous]);
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -175,7 +174,7 @@ export async function deleteWalletAction(walletId: string): Promise<Result> {
   const { data, error } = await supabase.from("payment_methods").delete().eq("id", walletId).select("qr_path").maybeSingle();
   if (error) return dbError(error);
   if (data && !data.qr_path.startsWith("/")) await supabase.storage.from("store-assets").remove([data.qr_path]);
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -202,7 +201,7 @@ export async function saveCategoryAction(input: z.input<typeof categoryInput>): 
       .insert({ name: v.name, sort_order: v.sortOrder, slug: nextFreeSlug(base, (used ?? []).map((u) => u.slug)) });
     if (error) return dbError(error, { duplicate: "Ya hay una categoría con ese nombre" });
   }
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -212,7 +211,7 @@ export async function deleteCategoryAction(categoryId: string): Promise<Result> 
   const supabase = await createServerSupabase();
   const { error } = await supabase.from("categories").delete().eq("id", categoryId);
   if (error) return dbError(error, { inUse: "Esta categoría tiene productos; muévelos primero" });
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true };
 }
 
@@ -232,6 +231,6 @@ export async function deleteSampleProductsAction(confirmation: string): Promise<
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.rpc("delete_sample_products");
   if (error) return { error: adminErrorMessage(error, "No pudimos borrar los productos de prueba. Vuelve a intentarlo.") };
-  updateTag(CATALOG_TAG);
+  invalidateCatalog();
   return { ok: true, deleted: data };
 }

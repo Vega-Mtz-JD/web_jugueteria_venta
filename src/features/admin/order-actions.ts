@@ -1,8 +1,7 @@
 "use server";
 
-import { updateTag } from "next/cache";
 import { z } from "zod";
-import { CATALOG_TAG } from "@/features/catalog/cached";
+import { invalidateCatalog } from "@/features/catalog/invalidate";
 import { Constants } from "@/lib/supabase/database.types";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { adminErrorMessage } from "./errors";
@@ -38,6 +37,6 @@ export async function setOrderStatusAction(input: z.input<typeof setOrderStatusI
   });
   if (error) return { error: adminErrorMessage(error, "No pudimos cambiar el pedido. Vuelve a intentarlo.") };
   // Reembolsar o cancelar devuelve stock: la tienda debe mostrarlo al instante.
-  if (v.to === "reembolsado" || v.to === "cancelado") updateTag(CATALOG_TAG);
+  if (v.to === "reembolsado" || v.to === "cancelado") invalidateCatalog();
   return { ok: true };
 }

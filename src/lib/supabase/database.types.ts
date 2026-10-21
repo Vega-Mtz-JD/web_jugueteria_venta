@@ -97,6 +97,32 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"notification_outbox": {
+                  Row: {
+                    "attempts": number,"audience": string,"created_at": string,"id": number,"kind": string,"last_error": string | null,"locked_until": string | null,"note": string | null,"order_id": string | null,"sent_at": string | null,"target_user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"audience": string,"created_at"?: string,"id"?: never,"kind": string,"last_error"?: string | null,"locked_until"?: string | null,"note"?: string | null,"order_id"?: string | null,"sent_at"?: string | null,"target_user_id"?: string | null
+                  }
+                  Update: {
+                    "attempts"?: number,"audience"?: string,"created_at"?: string,"id"?: never,"kind"?: string,"last_error"?: string | null,"locked_until"?: string | null,"note"?: string | null,"order_id"?: string | null,"sent_at"?: string | null,"target_user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notification_outbox_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notification_outbox_target_user_id_fkey"
+      columns: ["target_user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"order_events": {
                   Row: {
                     "actor": string,"created_at": string,"from_status": Database["public"]['Enums']["order_status"] | null,"id": number,"note": string | null,"order_id": string,"to_status": Database["public"]['Enums']["order_status"]
@@ -263,6 +289,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"push_subscriptions": {
+                  Row: {
+                    "auth": string,"created_at": string,"endpoint": string,"id": string,"p256dh": string,"user_agent": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: string,"p256dh": string,"user_agent"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"p256dh"?: string,"user_agent"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_subscriptions_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"stock_movements": {
                   Row: {
                     "actor": string | null,"created_at": string,"delta": number,"id": number,"note": string | null,"product_id": string,"reason": string,"ref_id": string | null
@@ -333,6 +379,9 @@ isOneToOne: false
               "product_id": string,"quantity": number
             }[]
                            },
+"admin_send_test_push":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "admin_set_admin":
 { Args: { "p_email": string,"p_make_admin": boolean }; Returns: undefined
                            },
@@ -345,6 +394,9 @@ isOneToOne: false
 "cancel_order_by_customer":
 { Args: { "p_order_id": string }; Returns: undefined
                            },
+"claim_notifications":
+{ Args: { "p_limit"?: number }; Returns: Json
+                           },
 "create_order":
 { Args: { "p_delivery": Json,"p_invoice": Json,"p_items": Json,"p_request_id": string }; Returns: {
               "order_id": string,"order_number": number
@@ -355,6 +407,9 @@ isOneToOne: false
                            },
 "expire_orders":
 { Args: { "p_now"?: string }; Returns: number
+                           },
+"finish_notification":
+{ Args: { "p_error": string,"p_id": number }; Returns: undefined
                            },
 "immutable_unaccent":
 { Args: { "": string }; Returns: string
@@ -379,6 +434,9 @@ isOneToOne: false
                            },
 "submit_payment_proof":
 { Args: { "p_order_id": string,"p_path": string }; Returns: undefined
+                           },
+"wake_notifier":
+{ Args: Record<PropertyKey, never>; Returns: undefined
                            }
           }
           Enums: {

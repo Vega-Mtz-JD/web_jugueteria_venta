@@ -146,3 +146,18 @@ export async function createProduct(values: { name?: string; stock?: number; pri
   if (error) throw error;
   return data;
 }
+
+/** Correo en Mailpit para una dirección cuyo asunto empieza con `subject` (espera hasta 20 s). */
+export async function emailWithSubject(to: string, subject: string): Promise<{ subject: string; html: string; text: string }> {
+  for (let i = 0; i < 40; i++) {
+    const res = await fetch(`http://127.0.0.1:54324/api/v1/search?query=${encodeURIComponent(`to:${to}`)}`);
+    const { messages } = (await res.json()) as { messages: { ID: string; Subject: string }[] };
+    const found = messages?.find((m) => m.Subject.startsWith(subject));
+    if (found) {
+      const msg = await (await fetch(`http://127.0.0.1:54324/api/v1/message/${found.ID}`)).json();
+      return { subject: msg.Subject as string, html: msg.HTML as string, text: msg.Text as string };
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`No llegó a ${to} un correo «${subject}…»`);
+}
