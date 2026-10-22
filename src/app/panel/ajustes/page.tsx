@@ -5,12 +5,14 @@ import { AdminsEditor, SampleProductsButton } from "@/features/admin/settings/Ad
 import { CategoriesEditor, PointsEditor, ZonesEditor } from "@/features/admin/settings/ListEditors";
 import { Section } from "@/features/admin/settings/shared";
 import { FeesForm, StoreForm } from "@/features/admin/settings/StoreForms";
+import { StorePhotosEditor } from "@/features/admin/settings/StorePhotosEditor";
 import { WalletsEditor } from "@/features/admin/settings/WalletsEditor";
 
 export const metadata: Metadata = { title: "Ajustes" };
 
 const SECTIONS = [
   ["tienda", "Tienda"],
+  ["fotos", "Fotos de la tienda"],
   ["envios", "Envíos"],
   ["zonas", "Zonas"],
   ["puntos", "Puntos de encuentro"],
@@ -26,6 +28,9 @@ async function Settings() {
     <div className="grid gap-5">
       <Section id="tienda" title="Tienda" hint="Se muestra en el pie de la tienda y en los mensajes de WhatsApp.">
         <StoreForm store={data.store} />
+      </Section>
+      <Section id="fotos" title="Fotos de la tienda" hint="Se muestran en la portada como postal. Hasta 8, cada una con una frase corta.">
+        <StorePhotosEditor photos={data.storePhotos} />
       </Section>
       <Section id="envios" title="Envíos" hint="Lo que se cobra por enviar dentro de La Paz. La encomienda la paga el comprador al recoger.">
         <FeesForm fees={data.fees} />

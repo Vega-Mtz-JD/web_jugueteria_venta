@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { invalidateCatalog } from "@/features/catalog/invalidate";
+import { COORDINATES_ERROR, extractUrl, isGoogleMapsUrl, MAPS_URL_ERROR, parseCoordinates } from "@/features/store/location";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { adminErrorMessage } from "./errors";
 import { isAdminSession } from "./guard";
@@ -40,6 +41,18 @@ const storeInput = z.object({
     .refine((v) => v === "" || /^\+?[\d\s-]{8,20}$/.test(v), "Escribe el WhatsApp con código de país, por ejemplo +591 71234567"),
   address: text(200),
   pickupHours: text(120),
+  zone: text(60).default(""),
+  // Se acepta el mensaje entero que comparte Google Maps: se guarda solo el enlace.
+  mapsUrl: z
+    .string()
+    .default("")
+    .transform(extractUrl)
+    .refine((v) => v === "" || isGoogleMapsUrl(v), MAPS_URL_ERROR),
+  coordinates: z
+    .string()
+    .trim()
+    .default("")
+    .refine((v) => v === "" || parseCoordinates(v) !== null, COORDINATES_ERROR),
 });
 
 export async function saveStoreAction(input: z.input<typeof storeInput>): Promise<Result> {
@@ -48,10 +61,21 @@ export async function saveStoreAction(input: z.input<typeof storeInput>): Promis
   const problem = invalid(parsed);
   if (problem || !parsed.data) return { error: problem ?? SAVE_ERROR };
   const v = parsed.data;
+  const coordinates = v.coordinates ? parseCoordinates(v.coordinates) : null;
   const supabase = await createServerSupabase();
   const { error } = await supabase
     .from("store_settings")
-    .update({ store_name: v.storeName, tagline: v.tagline || null, whatsapp_phone: v.whatsappPhone || null, address: v.address || null, pickup_hours: v.pickupHours || null })
+    .update({
+      store_name: v.storeName,
+      tagline: v.tagline || null,
+      whatsapp_phone: v.whatsappPhone || null,
+      address: v.address || null,
+      pickup_hours: v.pickupHours || null,
+      zone: v.zone || null,
+      maps_url: v.mapsUrl || null,
+      latitude: coordinates?.latitude ?? null,
+      longitude: coordinates?.longitude ?? null,
+    })
     .eq("id", 1);
   if (error) return dbError(error);
   invalidateCatalog();

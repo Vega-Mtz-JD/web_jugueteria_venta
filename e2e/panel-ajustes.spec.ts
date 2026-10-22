@@ -7,14 +7,24 @@ import { adminClient, createOrderFor, createTestUser } from "./helpers/supabase-
 // Cambian datos de toda la tienda: una prueba a la vez y solo en PC (playwright.config ignora este archivo en celular).
 test.describe.configure({ mode: "serial" });
 
+const LONG_CAPTION = "Nuestra tienda en Sopocachi, a dos cuadras de la plaza Abaroa";
+
 const SEED = {
   whatsapp_phone: "+59170000000",
   delivery_fee_home_cents: 1500,
 };
 
+async function clearStorePhotos() {
+  const admin = adminClient();
+  await admin.from("store_photos").delete().not("id", "is", null);
+  const { data } = await admin.storage.from("product-images").list("tienda");
+  if (data?.length) await admin.storage.from("product-images").remove(data.map((f) => `tienda/${f.name}`));
+}
+
 async function restore() {
   const admin = adminClient();
-  await admin.from("store_settings").update(SEED).eq("id", 1);
+  await admin.from("store_settings").update({ ...SEED, zone: null, maps_url: null, latitude: null, longitude: null }).eq("id", 1);
+  await clearStorePhotos();
   await admin.from("delivery_zones").delete().eq("name", "Obrajes");
   await admin.from("meeting_points").update({ is_active: true }).eq("name", "Plaza Murillo");
   await admin.from("payment_methods").update({ qr_path: "/samples/qr-yape.svg" }).eq("name", "Yape");
@@ -28,6 +38,132 @@ async function customerPage(browser: Browser) {
 
 test.describe("ajustes del panel", () => {
   test.afterAll(restore);
+
+  test("el dueño sube, ordena y quita fotos de la tienda", async ({ page }) => {
+    await clearStorePhotos();
+    await loginAsAdmin(page);
+    await page.goto("/panel/ajustes");
+    const photos = page.getByRole("region", { name: "Fotos de la tienda" });
+    const file = path.join(__dirname, "fixtures", "captura.png");
+
+    await photos.getByLabel("Elegir foto").setInputFiles(file);
+    await photos.getByRole("button", { name: "Subir foto" }).click();
+    await expect(photos.getByRole("alert")).toHaveText("Escribe una frase corta");
+
+    for (const caption of ["Nuestra vitrina", "El Illimani desde la tienda"]) {
+      await photos.getByLabel("Elegir foto").setInputFiles(file);
+      await photos.getByLabel("Frase", { exact: true }).fill(caption);
+      await photos.getByRole("button", { name: "Subir foto" }).click();
+      await expect(photos.getByRole("list", { name: "Fotos subidas" }).getByRole("textbox").last()).toHaveValue(caption);
+    }
+    const captions = photos.getByRole("list", { name: "Fotos subidas" }).getByRole("textbox");
+    await expect(captions).toHaveCount(2);
+    await expect(captions.nth(0)).toHaveValue("Nuestra vitrina");
+
+    await photos.getByRole("button", { name: "Mover arriba: El Illimani desde la tienda" }).click();
+    await expect(captions.nth(0)).toHaveValue("El Illimani desde la tienda");
+    await expect(captions.nth(1)).toHaveValue("Nuestra vitrina");
+
+    for (const caption of ["Nuestra vitrina", "El Illimani desde la tienda"]) {
+      const item = photos.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: `Frase de «${caption}»` }) });
+      await item.getByRole("button", { name: "Quitar" }).click();
+      await item.getByRole("button", { name: "Sí, quitar" }).click();
+      await expect(item).toHaveCount(0);
+    }
+    await expect(photos.getByText("Todavía no hay fotos.")).toBeVisible();
+    const { data: files } = await adminClient().storage.from("product-images").list("tienda");
+    expect(files ?? []).toHaveLength(0);
+  });
+
+  test("el dueño guarda la ubicación de la tienda", async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto("/panel/ajustes");
+    const store = page.getByRole("region", { name: "Tienda", exact: true });
+    const save = async () => store.getByRole("button", { name: "Guardar" }).click();
+
+    await store.getByLabel("Coordenadas").fill("abc");
+    await save();
+    await expect(store.getByRole("alert")).toHaveText("Pega las coordenadas como aparecen en Google Maps, por ejemplo -16.5103, -68.1267");
+
+    await store.getByLabel("Coordenadas").fill("-16.50038123717869, -68.13096434249758");
+    await store.getByLabel("Enlace de Google Maps").fill("https://evil.example/maps");
+    await save();
+    await expect(store.getByRole("alert")).toHaveText("Pega el enlace de Google Maps que mandas por WhatsApp");
+
+    // Copiado entero desde el mensaje de WhatsApp: se queda con el enlace.
+    await store.getByLabel("Enlace de Google Maps").fill("Ludiq · Calle 1, Sopocachi https://maps.app.goo.gl/AbC123");
+    await store.getByLabel("Zona (ej.: Sopocachi)").fill("Sopocachi");
+    await save();
+    await expect(store.getByRole("status")).toHaveText("Guardado");
+
+    await page.reload();
+    await expect(store.getByLabel("Coordenadas")).toHaveValue("-16.500381, -68.130964");
+    await expect(store.getByLabel("Enlace de Google Maps")).toHaveValue("https://maps.app.goo.gl/AbC123");
+    await expect(store.getByLabel("Zona (ej.: Sopocachi)")).toHaveValue("Sopocachi");
+  });
+
+  test("las fotos y la ubicación aparecen en la portada", async ({ page, browser }) => {
+    await clearStorePhotos();
+    await loginAsAdmin(page);
+    await page.goto("/panel/ajustes");
+    const photos = page.getByRole("region", { name: "Fotos de la tienda" });
+    const file = path.join(__dirname, "fixtures", "captura.png");
+    for (const caption of ["Nuestra vitrina", LONG_CAPTION]) {
+      await photos.getByLabel("Elegir foto").setInputFiles(file);
+      await photos.getByLabel("Frase", { exact: true }).fill(caption);
+      await photos.getByRole("button", { name: "Subir foto" }).click();
+      await expect(photos.getByRole("list", { name: "Fotos subidas" }).getByRole("textbox").last()).toHaveValue(caption);
+    }
+    const store = page.getByRole("region", { name: "Tienda", exact: true });
+    await store.getByLabel("Zona (ej.: Sopocachi)").fill("Sopocachi");
+    await store.getByLabel("Enlace de Google Maps").fill("https://maps.app.goo.gl/Portada1");
+    await store.getByLabel("Coordenadas").fill("-16.5103, -68.1267");
+    await store.getByRole("button", { name: "Guardar" }).click();
+    await expect(store.getByRole("status")).toHaveText("Guardado");
+
+    // Un comprador cualquiera, sin sesión. Margen como en la prueba del WhatsApp: una regeneración de la
+    // portada que empezó antes de guardar puede terminar después (invalidateCatalog la repite a los 3 s).
+    const buyer = await (await browser.newContext()).newPage();
+    const visit = buyer.getByRole("region", { name: "Visítanos en La Paz" });
+    await expect(async () => {
+      await buyer.goto("/");
+      await expect(visit.getByRole("link", { name: "Cómo llegar" })).toHaveAttribute("href", "https://maps.app.goo.gl/Portada1", { timeout: 1000 });
+      await expect(buyer.getByRole("region", { name: "Fotos de la tienda" }).getByRole("group")).toHaveCount(2, { timeout: 1000 });
+    }).toPass({ timeout: 15000 });
+    const carousel = buyer.getByRole("region", { name: "Fotos de la tienda" });
+    await expect(carousel.getByRole("group")).toHaveCount(2);
+    await expect(carousel.getByRole("img").first()).toHaveAttribute("alt", "Nuestra vitrina");
+    await expect(buyer.getByTestId("cube3d")).toHaveCount(0);
+    await expect(buyer.getByText("📍 Sopocachi, La Paz")).toBeVisible();
+    await carousel.getByRole("button", { name: "Ver foto 2 de 2" }).click();
+    await expect(carousel.getByRole("button", { name: "Ver foto 2 de 2" })).toHaveAttribute("aria-current", "true");
+    // En el celular la frase larga se lee entera (no se corta con "…").
+    await buyer.setViewportSize({ width: 360, height: 780 });
+    const longCaption = carousel.getByRole("group", { name: "2 de 2" }).locator("figcaption");
+    await expect(longCaption).toHaveText(LONG_CAPTION);
+    expect(await longCaption.evaluate((el) => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+
+    await expect(visit.locator("iframe")).toHaveCount(0);
+    await visit.getByRole("button", { name: "Ver el mapa" }).click();
+    await expect(visit.locator("iframe")).toHaveAttribute("src", /q=-16\.5103,-68\.1267/);
+
+    // Con movimiento reducido no pasa sola.
+    await buyer.emulateMedia({ reducedMotion: "reduce" });
+    await buyer.reload();
+    await buyer.waitForTimeout(6000);
+    await expect(carousel.getByRole("button", { name: "Ver foto 1 de 2" })).toHaveAttribute("aria-current", "true");
+    await buyer.context().close();
+
+    // Sin fotos vuelve el cubo.
+    for (const caption of ["Nuestra vitrina", LONG_CAPTION]) {
+      const item = photos.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: `Frase de «${caption}»` }) });
+      await item.getByRole("button", { name: "Quitar" }).click();
+      await item.getByRole("button", { name: "Sí, quitar" }).click();
+      await expect(item).toHaveCount(0);
+    }
+    await page.goto("/");
+    await expect(page.getByTestId("cube3d")).toBeVisible();
+  });
 
   test("borrar una billetera pide confirmación (un toque de más no quita el QR)", async ({ page }) => {
     const admin = adminClient();

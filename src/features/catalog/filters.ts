@@ -67,7 +67,14 @@ type StoreSettingsRow = {
   whatsapp_phone: string | null;
   address: string | null;
   pickup_hours: string | null;
+  zone?: string | null;
+  maps_url?: string | null;
+  // numeric: PostgREST lo puede devolver como número o como texto.
+  latitude?: number | string | null;
+  longitude?: number | string | null;
 };
+
+const toNumber = (v: number | string | null | undefined) => (v === null || v === undefined || v === "" ? null : Number(v));
 
 /** Ajustes de la tienda; si aún no existe la fila, valores por defecto para que la web no se caiga. */
 export function settingsFromRow(row: StoreSettingsRow | null): StoreSettings {
@@ -77,5 +84,9 @@ export function settingsFromRow(row: StoreSettingsRow | null): StoreSettings {
     whatsappPhone: row?.whatsapp_phone ?? null,
     address: row?.address ?? null,
     pickupHours: row?.pickup_hours ?? null,
+    zone: row?.zone ?? null,
+    mapsUrl: row?.maps_url ?? null,
+    latitude: toNumber(row?.latitude),
+    longitude: toNumber(row?.longitude),
   };
 }

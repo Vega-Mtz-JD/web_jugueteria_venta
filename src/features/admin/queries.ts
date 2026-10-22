@@ -1,5 +1,6 @@
 import { fetchOrderDetail, UUID, type OrderDetail } from "@/features/orders/queries";
 import type { OrderStatus } from "@/features/orders/status";
+import { formatCoordinates } from "@/features/store/location";
 import { productImageUrl } from "@/lib/images";
 import { supabaseEnv } from "@/lib/supabase/env";
 import { createServerSupabase } from "@/lib/supabase/server";
@@ -239,7 +240,8 @@ export async function getAdminProduct(productId: string): Promise<AdminProductDe
 // Ajustes ---------------------------------------------------------------------------------------------
 
 export type SettingsData = {
-  store: { storeName: string; tagline: string; whatsappPhone: string; address: string; pickupHours: string };
+  store: { storeName: string; tagline: string; whatsappPhone: string; address: string; pickupHours: string; zone: string; mapsUrl: string; coordinates: string };
+  storePhotos: { id: string; url: string; caption: string }[];
   fees: { homeCents: number; meetingCents: number };
   zones: { id: string; name: string; mode: "domicilio" | "punto"; sortOrder: number; isActive: boolean }[];
   points: { id: string; name: string; reference: string | null; sortOrder: number; isActive: boolean }[];
@@ -253,7 +255,7 @@ export type SettingsData = {
 /** Todo lo que se edita en Ajustes, incluso lo desactivado. */
 export async function getSettingsData(): Promise<SettingsData> {
   const supabase = await createServerSupabase();
-  const [claims, settings, zones, points, wallets, categories, admins, samples] = await Promise.all([
+  const [claims, settings, zones, points, wallets, categories, admins, samples, photos] = await Promise.all([
     supabase.auth.getClaims(),
     supabase.from("store_settings").select("*").maybeSingle(),
     supabase.from("delivery_zones").select("id, name, mode, sort_order, is_active").order("sort_order").order("name"),
@@ -262,8 +264,9 @@ export async function getSettingsData(): Promise<SettingsData> {
     supabase.from("categories").select("id, name, sort_order, products(count)").order("sort_order").order("name"),
     supabase.rpc("admin_list_admins"),
     supabase.from("products").select("id", { count: "exact", head: true }).eq("is_sample", true),
+    supabase.from("store_photos").select("id, path, caption").order("sort_order").order("created_at"),
   ]);
-  for (const r of [settings, zones, points, wallets, categories, admins]) if (r.error) throw r.error;
+  for (const r of [settings, zones, points, wallets, categories, admins, photos]) if (r.error) throw r.error;
   const { url } = supabaseEnv();
   const s = settings.data;
   return {
@@ -273,7 +276,11 @@ export async function getSettingsData(): Promise<SettingsData> {
       whatsappPhone: s?.whatsapp_phone ?? "",
       address: s?.address ?? "",
       pickupHours: s?.pickup_hours ?? "",
+      zone: s?.zone ?? "",
+      mapsUrl: s?.maps_url ?? "",
+      coordinates: s?.latitude != null && s?.longitude != null ? formatCoordinates(Number(s.latitude), Number(s.longitude)) : "",
     },
+    storePhotos: (photos.data ?? []).map((p) => ({ id: p.id, url: productImageUrl(p.path, url), caption: p.caption })),
     fees: { homeCents: s?.delivery_fee_home_cents ?? 0, meetingCents: s?.delivery_fee_meeting_cents ?? 0 },
     zones: (zones.data ?? []).map((z) => ({ id: z.id, name: z.name, mode: z.mode, sortOrder: z.sort_order, isActive: z.is_active })),
     points: (points.data ?? []).map((p) => ({ id: p.id, name: p.name, reference: p.reference, sortOrder: p.sort_order, isActive: p.is_active })),

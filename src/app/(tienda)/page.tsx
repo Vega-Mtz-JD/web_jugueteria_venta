@@ -7,8 +7,10 @@ import { MotionToggle } from "@/components/brand/MotionToggle";
 import { RevealItem } from "@/components/brand/Reveal";
 import { Button } from "@/components/ui/button";
 import { CategoryGrid } from "@/features/catalog/CategoryGrid";
-import { listCategories, listProducts } from "@/features/catalog/cached";
+import { getStoreSettings, listCategories, listProducts, listStorePhotos } from "@/features/catalog/cached";
 import { ProductGrid } from "@/features/catalog/ProductGrid";
+import { StorePostcard } from "@/features/store/StorePostcard";
+import { VisitSection } from "@/features/store/VisitSection";
 
 const TRUST = [
   { icon: BusIcon, text: "Envíos a toda Bolivia" },
@@ -28,7 +30,12 @@ function SectionHeading({ title, href, linkText }: { title: string; href: string
 }
 
 export default async function Home() {
-  const [categories, featured] = await Promise.all([listCategories(), listProducts({ orden: "destacados" }, 8)]);
+  const [categories, featured, settings, photos] = await Promise.all([
+    listCategories(),
+    listProducts({ orden: "destacados" }, 8),
+    getStoreSettings(),
+    listStorePhotos(),
+  ]);
 
   return (
     <>
@@ -86,7 +93,7 @@ export default async function Home() {
             </RevealItem>
           </div>
 
-          <div className="relative order-1 flex h-60 items-center justify-center md:order-2 md:h-80">
+          <div className={`relative order-1 flex items-center justify-center md:order-2 ${photos.length > 0 ? "min-h-60 py-4 md:min-h-80" : "h-60 md:h-80"}`}>
             <div
               aria-hidden
               className="absolute size-52 rounded-full bg-verde md:size-64"
@@ -97,7 +104,7 @@ export default async function Home() {
               }}
             />
             <FloatingPieces />
-            <Cube3D />
+            {photos.length > 0 ? <StorePostcard photos={photos} settings={settings} /> : <Cube3D />}
             <div className="absolute bottom-0 right-0">
               <MotionToggle />
             </div>
@@ -114,6 +121,8 @@ export default async function Home() {
         <SectionHeading title="Destacados" href="/catalogo" linkText="Ver catálogo" />
         <ProductGrid products={featured} />
       </section>
+
+      <VisitSection settings={settings} />
 
       <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6">
         <div className="flex flex-col gap-4 rounded-3xl bg-verde p-6 text-crema sm:flex-row sm:items-center sm:p-8">
