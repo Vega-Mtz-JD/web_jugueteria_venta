@@ -15,7 +15,20 @@ export function PhotoCarousel({ photos }: { photos: StorePhoto[] }) {
   // Hasta saber la preferencia del navegador, no se mueve.
   const [reducedMotion, setReducedMotion] = useState(true);
   const [paused, setPaused] = useState(false);
+  // Solo la primera foto va en la carga inicial; las demás, cuando el navegador queda libre o se toca el carrusel.
+  const [loadRest, setLoadRest] = useState(false);
   const count = photos.length;
+
+  useEffect(() => {
+    if (count < 2) return;
+    const load = () => setLoadRest(true);
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(load, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(load, 2000);
+    return () => window.clearTimeout(id);
+  }, [count]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -34,6 +47,7 @@ export function PhotoCarousel({ photos }: { photos: StorePhoto[] }) {
 
   const goTo = useCallback(
     (index: number) => {
+      setLoadRest(true);
       const el = track.current;
       if (!el) return;
       el.scrollTo({ left: index * el.clientWidth, behavior: reducedMotion ? "auto" : "smooth" });
@@ -48,7 +62,10 @@ export function PhotoCarousel({ photos }: { photos: StorePhoto[] }) {
     return () => window.clearTimeout(timer);
   }, [active, count, reducedMotion, paused, interacting, goTo]);
 
-  const busy = () => setInteracting(true);
+  const busy = () => {
+    setInteracting(true);
+    setLoadRest(true);
+  };
   const free = () => setInteracting(false);
 
   return (
@@ -71,15 +88,17 @@ export function PhotoCarousel({ photos }: { photos: StorePhoto[] }) {
         {photos.map((photo, i) => (
           <figure key={photo.id} role="group" aria-roledescription="diapositiva" aria-label={`${i + 1} de ${count}`} className="w-full shrink-0 snap-center">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-sm bg-crema-2">
-              <Image
-                src={photo.url}
-                alt={photo.caption}
-                fill
-                sizes="(max-width: 768px) 70vw, 320px"
-                className="object-cover"
-                priority={i === 0}
-                loading={i === 0 ? undefined : "lazy"}
-              />
+              {(i === 0 || loadRest) && (
+                <Image
+                  src={photo.url}
+                  alt={photo.caption}
+                  fill
+                  sizes="(max-width: 768px) 70vw, 320px"
+                  className="object-cover"
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : "low"}
+                />
+              )}
             </div>
             <figcaption className="truncate pt-2 text-center font-serif text-sm font-semibold text-tinta">{photo.caption}</figcaption>
           </figure>
