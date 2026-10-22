@@ -50,3 +50,10 @@ alter table public.store_settings
   add column latitude numeric(9, 6) check (latitude between -23 and -9),
   add column longitude numeric(9, 6) check (longitude between -70 and -57),
   add constraint store_settings_coordinates check ((latitude is null) = (longitude is null));
+
+-- Borrar archivos: storage hace DELETE … RETURNING, que con RLS también exige poder LEER la fila.
+-- Sin esto, quitar una foto (de la tienda, de un producto o un QR) dejaba el archivo suelto sin dar error.
+create policy "fotos de productos: admin lee" on storage.objects
+  for select to authenticated using (bucket_id = 'product-images' and (select public.is_admin()));
+create policy "recursos de la tienda: admin lee" on storage.objects
+  for select to authenticated using (bucket_id = 'store-assets' and (select public.is_admin()));

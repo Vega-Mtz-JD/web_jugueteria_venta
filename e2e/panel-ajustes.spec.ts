@@ -12,9 +12,17 @@ const SEED = {
   delivery_fee_home_cents: 1500,
 };
 
+async function clearStorePhotos() {
+  const admin = adminClient();
+  await admin.from("store_photos").delete().not("id", "is", null);
+  const { data } = await admin.storage.from("product-images").list("tienda");
+  if (data?.length) await admin.storage.from("product-images").remove(data.map((f) => `tienda/${f.name}`));
+}
+
 async function restore() {
   const admin = adminClient();
-  await admin.from("store_settings").update(SEED).eq("id", 1);
+  await admin.from("store_settings").update({ ...SEED, zone: null, maps_url: null, latitude: null, longitude: null }).eq("id", 1);
+  await clearStorePhotos();
   await admin.from("delivery_zones").delete().eq("name", "Obrajes");
   await admin.from("meeting_points").update({ is_active: true }).eq("name", "Plaza Murillo");
   await admin.from("payment_methods").update({ qr_path: "/samples/qr-yape.svg" }).eq("name", "Yape");
@@ -28,6 +36,68 @@ async function customerPage(browser: Browser) {
 
 test.describe("ajustes del panel", () => {
   test.afterAll(restore);
+
+  test("el dueño sube, ordena y quita fotos de la tienda", async ({ page }) => {
+    await clearStorePhotos();
+    await loginAsAdmin(page);
+    await page.goto("/panel/ajustes");
+    const photos = page.getByRole("region", { name: "Fotos de la tienda" });
+    const file = path.join(__dirname, "fixtures", "captura.png");
+
+    await photos.getByLabel("Elegir foto").setInputFiles(file);
+    await photos.getByRole("button", { name: "Subir foto" }).click();
+    await expect(photos.getByRole("alert")).toHaveText("Escribe una frase corta");
+
+    for (const caption of ["Nuestra vitrina", "El Illimani desde la tienda"]) {
+      await photos.getByLabel("Elegir foto").setInputFiles(file);
+      await photos.getByLabel("Frase", { exact: true }).fill(caption);
+      await photos.getByRole("button", { name: "Subir foto" }).click();
+      await expect(photos.getByRole("list", { name: "Fotos subidas" }).getByRole("textbox").last()).toHaveValue(caption);
+    }
+    const captions = photos.getByRole("list", { name: "Fotos subidas" }).getByRole("textbox");
+    await expect(captions).toHaveCount(2);
+    await expect(captions.nth(0)).toHaveValue("Nuestra vitrina");
+
+    await photos.getByRole("button", { name: "Mover arriba: El Illimani desde la tienda" }).click();
+    await expect(captions.nth(0)).toHaveValue("El Illimani desde la tienda");
+    await expect(captions.nth(1)).toHaveValue("Nuestra vitrina");
+
+    for (const caption of ["Nuestra vitrina", "El Illimani desde la tienda"]) {
+      const item = photos.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: `Frase de «${caption}»` }) });
+      await item.getByRole("button", { name: "Quitar" }).click();
+      await item.getByRole("button", { name: "Sí, quitar" }).click();
+      await expect(item).toHaveCount(0);
+    }
+    await expect(photos.getByText("Todavía no hay fotos.")).toBeVisible();
+    const { data: files } = await adminClient().storage.from("product-images").list("tienda");
+    expect(files ?? []).toHaveLength(0);
+  });
+
+  test("el dueño guarda la ubicación de la tienda", async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto("/panel/ajustes");
+    const store = page.getByRole("region", { name: "Tienda", exact: true });
+    const save = async () => store.getByRole("button", { name: "Guardar" }).click();
+
+    await store.getByLabel("Coordenadas").fill("abc");
+    await save();
+    await expect(store.getByRole("alert")).toHaveText("Pega las coordenadas como aparecen en Google Maps, por ejemplo -16.5103, -68.1267");
+
+    await store.getByLabel("Coordenadas").fill("-16.5103, -68.1267");
+    await store.getByLabel("Enlace de Google Maps").fill("https://evil.example/maps");
+    await save();
+    await expect(store.getByRole("alert")).toHaveText("Pega el enlace de Google Maps que mandas por WhatsApp");
+
+    await store.getByLabel("Enlace de Google Maps").fill("https://maps.app.goo.gl/AbC123");
+    await store.getByLabel("Zona (ej.: Sopocachi)").fill("Sopocachi");
+    await save();
+    await expect(store.getByRole("status")).toHaveText("Guardado");
+
+    await page.reload();
+    await expect(store.getByLabel("Coordenadas")).toHaveValue("-16.5103, -68.1267");
+    await expect(store.getByLabel("Enlace de Google Maps")).toHaveValue("https://maps.app.goo.gl/AbC123");
+    await expect(store.getByLabel("Zona (ej.: Sopocachi)")).toHaveValue("Sopocachi");
+  });
 
   test("borrar una billetera pide confirmación (un toque de más no quita el QR)", async ({ page }) => {
     const admin = adminClient();

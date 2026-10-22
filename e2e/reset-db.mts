@@ -41,8 +41,31 @@ for (const [slug, stock] of Object.entries(SEED_STOCK)) {
 // Ajustes que cambian las pruebas del panel.
 await call("store_settings?id=eq.1", {
   method: "PATCH",
-  body: JSON.stringify({ whatsapp_phone: "+59170000000", delivery_fee_home_cents: 1500, delivery_fee_meeting_cents: 0 }),
+  body: JSON.stringify({
+    whatsapp_phone: "+59170000000",
+    delivery_fee_home_cents: 1500,
+    delivery_fee_meeting_cents: 0,
+    zone: null,
+    maps_url: null,
+    latitude: null,
+    longitude: null,
+  }),
 });
+// Fotos de la tienda que suben las pruebas (filas y archivos en product-images/tienda/).
+await call("store_photos?id=not.is.null", { method: "DELETE" });
+const listed = await fetch(`${api}/storage/v1/object/list/product-images`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ prefix: "tienda", limit: 1000 }),
+});
+const files = listed.ok ? ((await listed.json()) as { name: string }[]) : [];
+if (files.length) {
+  await fetch(`${api}/storage/v1/object/product-images`, {
+    method: "DELETE",
+    headers,
+    body: JSON.stringify({ prefixes: files.map((f) => `tienda/${f.name}`) }),
+  });
+}
 await call("delivery_zones?name=eq.Obrajes", { method: "DELETE" });
 await call("meeting_points?id=not.is.null", { method: "PATCH", body: JSON.stringify({ is_active: true }) });
 for (const wallet of ["Yape", "Altoke", "Yasta"]) {

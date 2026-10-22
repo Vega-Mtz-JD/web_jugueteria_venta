@@ -15,7 +15,18 @@ export function StoreForm({ store }: { store: SettingsData["store"] }) {
         e.preventDefault();
         const f = new FormData(e.currentTarget);
         const t = (k: string) => String(f.get(k) ?? "");
-        run(() => saveStoreAction({ storeName: t("storeName"), tagline: t("tagline"), whatsappPhone: t("whatsappPhone"), address: t("address"), pickupHours: t("pickupHours") }));
+        run(() =>
+          saveStoreAction({
+            storeName: t("storeName"),
+            tagline: t("tagline"),
+            whatsappPhone: t("whatsappPhone"),
+            address: t("address"),
+            pickupHours: t("pickupHours"),
+            zone: t("zone"),
+            mapsUrl: t("mapsUrl"),
+            coordinates: t("coordinates"),
+          }),
+        );
       }}
     >
       <label className={field}>
@@ -37,6 +48,21 @@ export function StoreForm({ store }: { store: SettingsData["store"] }) {
       <label className={`${field} sm:col-span-2`}>
         Dirección
         <input name="address" defaultValue={store.address} maxLength={200} className={control} />
+      </label>
+      <label className={field}>
+        Zona (ej.: Sopocachi)
+        <input name="zone" defaultValue={store.zone} maxLength={60} className={control} />
+      </label>
+      <label className={field}>
+        Enlace de Google Maps
+        <input name="mapsUrl" type="url" inputMode="url" defaultValue={store.mapsUrl} placeholder="https://maps.app.goo.gl/…" className={control} />
+      </label>
+      <label className={`${field} sm:col-span-2`}>
+        Coordenadas
+        <input name="coordinates" inputMode="decimal" defaultValue={store.coordinates} placeholder="-16.5103, -68.1267" aria-describedby="coordenadas-ayuda" className={control} />
+        <span id="coordenadas-ayuda" className="text-sm font-normal text-muted-foreground">
+          En Google Maps, mantén el dedo sobre la tienda y copia los números que aparecen arriba.
+        </span>
       </label>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
         <Button type="submit" disabled={pending}>
