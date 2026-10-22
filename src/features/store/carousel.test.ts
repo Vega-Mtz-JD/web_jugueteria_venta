@@ -9,7 +9,7 @@ describe("nextIndex", () => {
 });
 
 describe("canAutoplay", () => {
-  const base = { count: 2, reducedMotion: false, paused: false, interacting: false };
+  const base = { count: 2, reducedMotion: false, paused: false, interacting: false, visible: true };
   it("pasa solo cada 5 s con 2 o más fotos y nada que lo frene", () => {
     expect(AUTOPLAY_MS).toBe(5000);
     expect(canAutoplay(base)).toBe(true);
@@ -19,5 +19,8 @@ describe("canAutoplay", () => {
     expect(canAutoplay({ ...base, reducedMotion: true })).toBe(false);
     expect(canAutoplay({ ...base, paused: true })).toBe(false);
     expect(canAutoplay({ ...base, interacting: true })).toBe(false);
+  });
+  it("no pasa si el carrusel no se ve (fuera de pantalla o pestaña oculta): no gasta datos", () => {
+    expect(canAutoplay({ ...base, visible: false })).toBe(false);
   });
 });

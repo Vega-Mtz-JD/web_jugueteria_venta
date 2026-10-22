@@ -7,19 +7,26 @@ export type Coordinates = { latitude: number; longitude: number };
 
 // Misma regla que el check de store_settings.maps_url.
 const MAPS_URL = /^https:\/\/((www\.)?google\.[a-z]{2,3}(\.[a-z]{2})?\/maps|maps\.google\.[a-z]{2,3}(\.[a-z]{2})?\/|maps\.app\.goo\.gl\/|goo\.gl\/maps\/)/;
-const NUMBER = /^-?\d{1,3}(\.\d{1,8})?$/;
+const NUMBER = /^-?\d{1,3}(\.\d+)?$/;
+// La columna guarda 6 decimales (unos 10 cm): las de la PC traen 14 o 15.
+const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
 
 /** "-16.5103, -68.1267" (punto decimal, coma entre los dos) dentro de Bolivia; si no, null. */
 export function parseCoordinates(text: string): Coordinates | null {
   const parts = text.split(",").map((p) => p.trim());
   if (parts.length !== 2 || !parts.every((p) => NUMBER.test(p))) return null;
-  const [latitude, longitude] = parts.map(Number);
+  const [latitude, longitude] = parts.map((p) => round6(Number(p)));
   if (latitude < -23 || latitude > -9 || longitude < -70 || longitude > -57) return null;
   return { latitude, longitude };
 }
 
 export function formatCoordinates(latitude: number, longitude: number): string {
   return `${latitude}, ${longitude}`;
+}
+
+/** Del mensaje que comparte Google Maps ("Ludiq · Calle… https://maps.app.goo.gl/…") se queda con el enlace. */
+export function extractUrl(text: string): string {
+  return text.match(/https?:\/\/\S+/)?.[0] ?? text.trim();
 }
 
 export function isGoogleMapsUrl(url: string): boolean {

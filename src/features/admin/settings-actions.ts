@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { invalidateCatalog } from "@/features/catalog/invalidate";
-import { COORDINATES_ERROR, isGoogleMapsUrl, MAPS_URL_ERROR, parseCoordinates } from "@/features/store/location";
+import { COORDINATES_ERROR, extractUrl, isGoogleMapsUrl, MAPS_URL_ERROR, parseCoordinates } from "@/features/store/location";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { adminErrorMessage } from "./errors";
 import { isAdminSession } from "./guard";
@@ -42,10 +42,11 @@ const storeInput = z.object({
   address: text(200),
   pickupHours: text(120),
   zone: text(60).default(""),
+  // Se acepta el mensaje entero que comparte Google Maps: se guarda solo el enlace.
   mapsUrl: z
     .string()
-    .trim()
     .default("")
+    .transform(extractUrl)
     .refine((v) => v === "" || isGoogleMapsUrl(v), MAPS_URL_ERROR),
   coordinates: z
     .string()

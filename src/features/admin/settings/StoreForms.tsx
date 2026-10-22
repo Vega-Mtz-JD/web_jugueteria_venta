@@ -55,7 +55,7 @@ export function StoreForm({ store }: { store: SettingsData["store"] }) {
       </label>
       <label className={field}>
         Enlace de Google Maps
-        <input name="mapsUrl" type="url" inputMode="url" defaultValue={store.mapsUrl} placeholder="https://maps.app.goo.gl/…" className={control} />
+        <input name="mapsUrl" inputMode="url" defaultValue={store.mapsUrl} placeholder="https://maps.app.goo.gl/…" className={control} />
       </label>
       <label className={`${field} sm:col-span-2`}>
         Coordenadas

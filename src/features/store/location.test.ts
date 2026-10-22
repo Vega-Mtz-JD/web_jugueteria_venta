@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { directionsHref, formatCoordinates, isGoogleMapsUrl, mapEmbedSrc, parseCoordinates } from "./location";
+import { directionsHref, extractUrl, formatCoordinates, isGoogleMapsUrl, mapEmbedSrc, parseCoordinates } from "./location";
 
 describe("parseCoordinates", () => {
   it("lee las coordenadas como las copia Google Maps", () => {
     expect(parseCoordinates("-16.5103, -68.1267")).toEqual({ latitude: -16.5103, longitude: -68.1267 });
     expect(parseCoordinates("-16.510312,-68.126745")).toEqual({ latitude: -16.510312, longitude: -68.126745 });
     expect(parseCoordinates("  -16.5103 ,  -68.1267 ")).toEqual({ latitude: -16.5103, longitude: -68.1267 });
+  });
+  it("acepta las de la PC (14 o 15 decimales) y las redondea a 6", () => {
+    expect(parseCoordinates("-16.50038123717869, -68.13096434249758")).toEqual({ latitude: -16.500381, longitude: -68.130964 });
   });
   it("rechaza lo que no sirve", () => {
     for (const bad of ["-16,5103, -68,1267", "16.5, 68.1", "-16.5103", "abc", "", "-16.5103, -68.1267, 3", "-30.1, -68.1"]) {
@@ -53,5 +56,16 @@ describe("directionsHref", () => {
 describe("mapEmbedSrc", () => {
   it("mapa con el pin exacto", () => {
     expect(mapEmbedSrc(-16.5103, -68.1267)).toBe("https://www.google.com/maps?q=-16.5103,-68.1267&z=17&output=embed");
+  });
+});
+
+describe("extractUrl", () => {
+  it("saca el enlace del mensaje que se comparte por WhatsApp", () => {
+    expect(extractUrl("Ludiq · Calle 1, Sopocachi https://maps.app.goo.gl/AbC123")).toBe("https://maps.app.goo.gl/AbC123");
+    expect(extractUrl("  https://maps.app.goo.gl/AbC123  ")).toBe("https://maps.app.goo.gl/AbC123");
+  });
+  it("sin enlace devuelve el texto tal cual (para que la validación lo rechace)", () => {
+    expect(extractUrl("no es un enlace")).toBe("no es un enlace");
+    expect(extractUrl("")).toBe("");
   });
 });

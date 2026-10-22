@@ -7,6 +7,8 @@ import { adminClient, createOrderFor, createTestUser } from "./helpers/supabase-
 // Cambian datos de toda la tienda: una prueba a la vez y solo en PC (playwright.config ignora este archivo en celular).
 test.describe.configure({ mode: "serial" });
 
+const LONG_CAPTION = "Nuestra tienda en Sopocachi, a dos cuadras de la plaza Abaroa";
+
 const SEED = {
   whatsapp_phone: "+59170000000",
   delivery_fee_home_cents: 1500,
@@ -83,18 +85,19 @@ test.describe("ajustes del panel", () => {
     await save();
     await expect(store.getByRole("alert")).toHaveText("Pega las coordenadas como aparecen en Google Maps, por ejemplo -16.5103, -68.1267");
 
-    await store.getByLabel("Coordenadas").fill("-16.5103, -68.1267");
+    await store.getByLabel("Coordenadas").fill("-16.50038123717869, -68.13096434249758");
     await store.getByLabel("Enlace de Google Maps").fill("https://evil.example/maps");
     await save();
     await expect(store.getByRole("alert")).toHaveText("Pega el enlace de Google Maps que mandas por WhatsApp");
 
-    await store.getByLabel("Enlace de Google Maps").fill("https://maps.app.goo.gl/AbC123");
+    // Copiado entero desde el mensaje de WhatsApp: se queda con el enlace.
+    await store.getByLabel("Enlace de Google Maps").fill("Ludiq · Calle 1, Sopocachi https://maps.app.goo.gl/AbC123");
     await store.getByLabel("Zona (ej.: Sopocachi)").fill("Sopocachi");
     await save();
     await expect(store.getByRole("status")).toHaveText("Guardado");
 
     await page.reload();
-    await expect(store.getByLabel("Coordenadas")).toHaveValue("-16.5103, -68.1267");
+    await expect(store.getByLabel("Coordenadas")).toHaveValue("-16.500381, -68.130964");
     await expect(store.getByLabel("Enlace de Google Maps")).toHaveValue("https://maps.app.goo.gl/AbC123");
     await expect(store.getByLabel("Zona (ej.: Sopocachi)")).toHaveValue("Sopocachi");
   });
@@ -105,7 +108,7 @@ test.describe("ajustes del panel", () => {
     await page.goto("/panel/ajustes");
     const photos = page.getByRole("region", { name: "Fotos de la tienda" });
     const file = path.join(__dirname, "fixtures", "captura.png");
-    for (const caption of ["Nuestra vitrina", "El Illimani desde la tienda"]) {
+    for (const caption of ["Nuestra vitrina", LONG_CAPTION]) {
       await photos.getByLabel("Elegir foto").setInputFiles(file);
       await photos.getByLabel("Frase", { exact: true }).fill(caption);
       await photos.getByRole("button", { name: "Subir foto" }).click();
@@ -113,14 +116,20 @@ test.describe("ajustes del panel", () => {
     }
     const store = page.getByRole("region", { name: "Tienda", exact: true });
     await store.getByLabel("Zona (ej.: Sopocachi)").fill("Sopocachi");
-    await store.getByLabel("Enlace de Google Maps").fill("https://maps.app.goo.gl/AbC123");
+    await store.getByLabel("Enlace de Google Maps").fill("https://maps.app.goo.gl/Portada1");
     await store.getByLabel("Coordenadas").fill("-16.5103, -68.1267");
     await store.getByRole("button", { name: "Guardar" }).click();
     await expect(store.getByRole("status")).toHaveText("Guardado");
 
-    // Un comprador cualquiera, sin sesión.
+    // Un comprador cualquiera, sin sesión. Margen como en la prueba del WhatsApp: una regeneración de la
+    // portada que empezó antes de guardar puede terminar después (invalidateCatalog la repite a los 3 s).
     const buyer = await (await browser.newContext()).newPage();
-    await buyer.goto("/");
+    const visit = buyer.getByRole("region", { name: "Visítanos en La Paz" });
+    await expect(async () => {
+      await buyer.goto("/");
+      await expect(visit.getByRole("link", { name: "Cómo llegar" })).toHaveAttribute("href", "https://maps.app.goo.gl/Portada1", { timeout: 1000 });
+      await expect(buyer.getByRole("region", { name: "Fotos de la tienda" }).getByRole("group")).toHaveCount(2, { timeout: 1000 });
+    }).toPass({ timeout: 15000 });
     const carousel = buyer.getByRole("region", { name: "Fotos de la tienda" });
     await expect(carousel.getByRole("group")).toHaveCount(2);
     await expect(carousel.getByRole("img").first()).toHaveAttribute("alt", "Nuestra vitrina");
@@ -128,9 +137,12 @@ test.describe("ajustes del panel", () => {
     await expect(buyer.getByText("📍 Sopocachi, La Paz")).toBeVisible();
     await carousel.getByRole("button", { name: "Ver foto 2 de 2" }).click();
     await expect(carousel.getByRole("button", { name: "Ver foto 2 de 2" })).toHaveAttribute("aria-current", "true");
+    // En el celular la frase larga se lee entera (no se corta con "…").
+    await buyer.setViewportSize({ width: 360, height: 780 });
+    const longCaption = carousel.getByRole("group", { name: "2 de 2" }).locator("figcaption");
+    await expect(longCaption).toHaveText(LONG_CAPTION);
+    expect(await longCaption.evaluate((el) => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight + 1)).toBe(true);
 
-    const visit = buyer.getByRole("region", { name: "Visítanos en La Paz" });
-    await expect(visit.getByRole("link", { name: "Cómo llegar" })).toHaveAttribute("href", "https://maps.app.goo.gl/AbC123");
     await expect(visit.locator("iframe")).toHaveCount(0);
     await visit.getByRole("button", { name: "Ver el mapa" }).click();
     await expect(visit.locator("iframe")).toHaveAttribute("src", /q=-16\.5103,-68\.1267/);
@@ -143,7 +155,7 @@ test.describe("ajustes del panel", () => {
     await buyer.context().close();
 
     // Sin fotos vuelve el cubo.
-    for (const caption of ["Nuestra vitrina", "El Illimani desde la tienda"]) {
+    for (const caption of ["Nuestra vitrina", LONG_CAPTION]) {
       const item = photos.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: `Frase de «${caption}»` }) });
       await item.getByRole("button", { name: "Quitar" }).click();
       await item.getByRole("button", { name: "Sí, quitar" }).click();

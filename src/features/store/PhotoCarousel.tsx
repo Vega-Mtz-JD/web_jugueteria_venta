@@ -17,6 +17,8 @@ export function PhotoCarousel({ photos }: { photos: StorePhoto[] }) {
   const [paused, setPaused] = useState(false);
   // Solo la primera foto va en la carga inicial; las demás, cuando el navegador queda libre o se toca el carrusel.
   const [loadRest, setLoadRest] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const section = useRef<HTMLElement>(null);
   const count = photos.length;
 
   useEffect(() => {
@@ -45,6 +47,24 @@ export function PhotoCarousel({ photos }: { photos: StorePhoto[] }) {
     };
   }, []);
 
+  // Solo pasa sola mientras se ve: fuera de pantalla o con la pestaña oculta no baja fotos.
+  useEffect(() => {
+    const el = section.current;
+    if (!el) return;
+    let onScreen = false;
+    const sync = () => setVisible(onScreen && document.visibilityState === "visible");
+    const observer = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      sync();
+    });
+    observer.observe(el);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, []);
+
   const goTo = useCallback(
     (index: number) => {
       setLoadRest(true);
@@ -57,10 +77,10 @@ export function PhotoCarousel({ photos }: { photos: StorePhoto[] }) {
   );
 
   useEffect(() => {
-    if (!canAutoplay({ count, reducedMotion, paused, interacting })) return;
+    if (!canAutoplay({ count, reducedMotion, paused, interacting, visible })) return;
     const timer = window.setTimeout(() => goTo(nextIndex(active, count)), AUTOPLAY_MS);
     return () => window.clearTimeout(timer);
-  }, [active, count, reducedMotion, paused, interacting, goTo]);
+  }, [active, count, reducedMotion, paused, interacting, visible, goTo]);
 
   const busy = () => {
     setInteracting(true);
@@ -70,6 +90,7 @@ export function PhotoCarousel({ photos }: { photos: StorePhoto[] }) {
 
   return (
     <section
+      ref={section}
       aria-roledescription="carrusel"
       aria-label="Fotos de la tienda"
       onPointerEnter={busy}
@@ -100,7 +121,8 @@ export function PhotoCarousel({ photos }: { photos: StorePhoto[] }) {
                 />
               )}
             </div>
-            <figcaption className="truncate pt-2 text-center font-serif text-sm font-semibold text-tinta">{photo.caption}</figcaption>
+            {/* Dos líneas fijas: la frase (hasta 80 letras) se lee entera y la postal no cambia de alto. */}
+            <figcaption className="line-clamp-2 min-h-[2lh] pt-2 text-center font-serif text-sm leading-snug font-semibold text-tinta">{photo.caption}</figcaption>
           </figure>
         ))}
       </div>
