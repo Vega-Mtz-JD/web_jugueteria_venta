@@ -1,0 +1,367 @@
+-- Dashboard del panel (plan 5): una sola definición de venta, períodos, lista de ventas y resúmenes.
+-- Todo se suma desde sales_lines para que la portada, las barras y la lista den lo mismo al centavo.
+
+-- Qué es una venta ------------------------------------------------------------------------------------------
+-- Pedido web pagado/enviado/listo/entregado (fecha: último evento a 'pagado') o venta manual vigente.
+-- El envío va en una sola línea por pedido, para sumarlo sin repetirlo; no es venta.
+create or replace function public.sales_lines(p_from timestamptz, p_to timestamptz)
+returns table (
+  sold_at timestamptz,
+  channel text,
+  order_id uuid,
+  order_number int,
+  manual_sale_id uuid,
+  customer_id uuid,
+  product_id uuid,
+  product_name text,
+  quantity int,
+  unit_price_cents int,
+  unit_cost_cents int,
+  delivery_fee_cents int
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select w.sold_at, 'web', o.id, o.number, null::uuid, o.customer_id, oi.product_id, oi.product_name, oi.quantity,
+    oi.unit_price_cents, sc.unit_cost_cents,
+    case when row_number() over (partition by o.id order by oi.id) = 1 then o.delivery_fee_cents else 0 end
+  from public.orders o
+  cross join lateral (select max(e.created_at) as sold_at from public.order_events e
+                      where e.order_id = o.id and e.to_status = 'pagado') w
+  join public.order_items oi on oi.order_id = o.id
+  left join public.sale_costs sc on sc.order_item_id = oi.id
+  where o.status in ('pagado', 'enviado', 'listo_para_recoger', 'entregado')
+    and w.sold_at >= p_from and w.sold_at < p_to
+  union all
+  select s.created_at, s.channel, null, null, s.id, null, s.product_id, p.name, s.quantity, s.unit_price_cents,
+    sc.unit_cost_cents, 0
+  from public.manual_sales s
+  join public.products p on p.id = s.product_id
+  left join public.sale_costs sc on sc.manual_sale_id = s.id
+  where s.voided_at is null and s.created_at >= p_from and s.created_at < p_to;
+$$;
+revoke execute on function public.sales_lines(timestamptz, timestamptz) from public, anon, authenticated;
+
+-- El único lugar donde se suman los totales -----------------------------------------------------------------
+create or replace function public.sales_totals(p_from timestamptz, p_to timestamptz, p_channel text default null, p_without_cost boolean default false)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'salesCents', coalesce(sum(l.quantity::bigint * l.unit_price_cents), 0),
+    'count', count(distinct coalesce(l.order_id, l.manual_sale_id)),
+    'units', coalesce(sum(l.quantity), 0),
+    'costCents', coalesce(sum(l.quantity::bigint * l.unit_cost_cents) filter (where l.unit_cost_cents is not null), 0),
+    'profitCents', coalesce(sum(l.quantity::bigint * (l.unit_price_cents - l.unit_cost_cents)) filter (where l.unit_cost_cents is not null), 0),
+    'withoutCostCents', coalesce(sum(l.quantity::bigint * l.unit_price_cents) filter (where l.unit_cost_cents is null), 0),
+    'withoutCostUnits', coalesce(sum(l.quantity) filter (where l.unit_cost_cents is null), 0),
+    'shippingCents', coalesce(sum(l.delivery_fee_cents), 0))
+  from public.sales_lines(p_from, p_to) l
+  where (p_channel is null or l.channel = p_channel) and (not p_without_cost or l.unit_cost_cents is null);
+$$;
+revoke execute on function public.sales_totals(timestamptz, timestamptz, text, boolean) from public, anon, authenticated;
+
+-- Medianoche de La Paz de un día ----------------------------------------------------------------------------
+create or replace function public.la_paz_start(p_day date)
+returns timestamptz
+language sql
+immutable
+set search_path = ''
+as $$ select p_day::timestamp at time zone 'America/La_Paz' $$;
+revoke execute on function public.la_paz_start(date) from public, anon, authenticated;
+
+-- Períodos: el actual, el anterior (cortado en el mismo punto) y los días de la lista -------------------------
+create or replace function public.dashboard_period(p_period text, p_now timestamptz)
+returns table (cur_from timestamptz, cur_to timestamptz, prev_from timestamptz, prev_to timestamptz, list_from date, list_to date)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_local timestamp := p_now at time zone 'America/La_Paz';
+  v_d date := v_local::date;
+  v_m date := date_trunc('month', v_local)::date;
+  v_prev_m date := (date_trunc('month', v_local) - interval '1 month')::date;
+  -- +1 µs: incluye una venta registrada en el mismo instante.
+  v_now timestamptz := p_now + interval '1 microsecond';
+begin
+  case p_period
+    when 'hoy' then
+      return query select public.la_paz_start(v_d), v_now, public.la_paz_start(v_d - 1), v_now - interval '1 day', v_d, v_d;
+    when '7dias' then
+      return query select public.la_paz_start(v_d - 6), v_now, public.la_paz_start(v_d - 13), v_now - interval '7 days', v_d - 6, v_d;
+    when 'mes' then
+      return query select public.la_paz_start(v_m), v_now, public.la_paz_start(v_prev_m),
+        least(public.la_paz_start(v_prev_m) + (v_now - public.la_paz_start(v_m)), public.la_paz_start(v_m)), v_m, v_d;
+    when 'mes-anterior' then
+      return query select public.la_paz_start(v_prev_m), public.la_paz_start(v_m),
+        public.la_paz_start((v_prev_m - interval '1 month')::date), public.la_paz_start(v_prev_m), v_prev_m, v_m - 1;
+    when '12meses' then
+      return query select public.la_paz_start((v_m - interval '11 months')::date), v_now,
+        public.la_paz_start((v_m - interval '23 months')::date), v_now - interval '1 year', (v_m - interval '11 months')::date, v_d;
+    else
+      raise exception 'Período desconocido' using errcode = 'P0001';
+  end case;
+end;
+$$;
+revoke execute on function public.dashboard_period(text, timestamptz) from public, anon, authenticated;
+
+-- Lista de ventas (página Ventas) ---------------------------------------------------------------------------
+create or replace function public.admin_sales_list(
+  p_period text default null,
+  p_from date default null,
+  p_to date default null,
+  p_channel text default null,
+  p_without_cost boolean default false,
+  p_limit int default 200
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_from date := p_from;
+  v_to date := p_to;
+  v_lo timestamptz;
+  v_hi timestamptz;
+  v_rows jsonb;
+  v_count int;
+begin
+  perform public.require_admin();
+  if p_channel is not null and p_channel not in ('web', 'tienda', 'whatsapp') then
+    raise exception 'Canal desconocido' using errcode = 'P0001';
+  end if;
+  if p_period is not null then
+    select d.list_from, d.list_to into v_from, v_to from public.dashboard_period(p_period, now()) d;
+  end if;
+  if v_from is null or v_to is null or v_from > v_to or v_to - v_from > 800 then
+    raise exception 'Revisa las fechas' using errcode = 'P0001';
+  end if;
+  v_lo := public.la_paz_start(v_from);
+  v_hi := public.la_paz_start(v_to + 1);
+
+  select count(*) into v_count
+  from public.sales_lines(v_lo, v_hi) l
+  where (p_channel is null or l.channel = p_channel) and (not p_without_cost or l.unit_cost_cents is null);
+
+  select coalesce(jsonb_agg(x.j order by x.n), '[]'::jsonb) into v_rows
+  from (
+    select row_number() over (order by l.sold_at desc, l.product_name) as n,
+      jsonb_build_object(
+        'soldAt', l.sold_at, 'channel', l.channel, 'orderId', l.order_id, 'orderNumber', l.order_number,
+        'manualSaleId', l.manual_sale_id, 'productId', l.product_id, 'productName', l.product_name,
+        'quantity', l.quantity, 'unitPriceCents', l.unit_price_cents, 'unitCostCents', l.unit_cost_cents,
+        'profitCents', l.quantity::bigint * (l.unit_price_cents - l.unit_cost_cents)) as j
+    from public.sales_lines(v_lo, v_hi) l
+    where (p_channel is null or l.channel = p_channel) and (not p_without_cost or l.unit_cost_cents is null)
+  ) x
+  where x.n <= least(greatest(p_limit, 1), 500);
+
+  return jsonb_build_object(
+    'range', jsonb_build_object('from', v_from, 'to', v_to),
+    'totals', public.sales_totals(v_lo, v_hi, p_channel, p_without_cost),
+    'rowCount', v_count,
+    'rows', v_rows);
+end;
+$$;
+revoke execute on function public.admin_sales_list(text, date, date, text, boolean, int) from public, anon;
+grant execute on function public.admin_sales_list(text, date, date, text, boolean, int) to authenticated;
+
+-- Cubetas de las barras (días de La Paz, ambos extremos incluidos) ------------------------------------------
+create or replace function public.dashboard_buckets(p_period text, p_now timestamptz)
+returns table (idx int, kind text, b_from date, b_to date)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_local timestamp := p_now at time zone 'America/La_Paz';
+  v_d date := v_local::date;
+  v_m date := date_trunc('month', v_local)::date;
+  v_a date;
+  v_b date;
+begin
+  case p_period
+    when 'hoy', '7dias' then
+      return query select i, 'dia'::text, v_d - (7 - i), v_d - (7 - i) from generate_series(1, 7) i;
+      return;
+    when 'mes' then
+      v_a := v_m; v_b := v_d;
+    when 'mes-anterior' then
+      v_a := (v_m - interval '1 month')::date; v_b := v_m - 1;
+    when '12meses' then
+      return query select k, 'mes'::text, (v_m - make_interval(months => 12 - k))::date,
+        ((v_m - make_interval(months => 11 - k))::date - 1)
+      from generate_series(1, 12) k;
+      return;
+    else
+      raise exception 'Período desconocido' using errcode = 'P0001';
+  end case;
+  -- Semanas de lunes a domingo, recortadas al rango.
+  return query
+  select (row_number() over (order by w))::int, 'semana'::text, greatest(w::date, v_a), least((w + interval '6 days')::date, v_b)
+  from generate_series(date_trunc('week', v_a::timestamp), v_b::timestamp, interval '1 week') w;
+end;
+$$;
+revoke execute on function public.dashboard_buckets(text, timestamptz) from public, anon, authenticated;
+
+-- Todo lo que depende del período ---------------------------------------------------------------------------
+create or replace function public.admin_dashboard_sales(p_period text, p_now timestamptz default null)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_now timestamptz := coalesce(p_now, now());
+  p record;
+  v_result jsonb;
+begin
+  perform public.require_admin();
+  select * into p from public.dashboard_period(p_period, v_now);
+
+  with cur as (
+    select * from public.sales_lines(p.cur_from, p.cur_to)
+  ),
+  first_web as (
+    select l.customer_id, min(l.sold_at) as first_at
+    from public.sales_lines('-infinity', p.cur_to) l
+    where l.channel = 'web'
+    group by l.customer_id
+  ),
+  buyers as (
+    select distinct c.customer_id from cur c where c.channel = 'web'
+  ),
+  top as (
+    select l.product_id, pr.name, pr.stock,
+      sum(l.quantity) as units,
+      sum(l.quantity::bigint * l.unit_price_cents) as revenue,
+      coalesce(sum(l.quantity::bigint * (l.unit_price_cents - l.unit_cost_cents)) filter (where l.unit_cost_cents is not null), 0) as profit,
+      coalesce(sum(l.quantity) filter (where l.unit_cost_cents is null), 0) as without_cost
+    from cur l
+    join public.products pr on pr.id = l.product_id
+    group by l.product_id, pr.name, pr.stock
+    order by units desc, revenue desc, pr.name
+    limit 20
+  )
+  select jsonb_build_object(
+    'period', p_period,
+    'range', jsonb_build_object('from', p.list_from, 'to', p.list_to),
+    'current', public.sales_totals(p.cur_from, p.cur_to),
+    'previous', public.sales_totals(p.prev_from, p.prev_to),
+    'byChannel', jsonb_build_object(
+      'web', (public.sales_totals(p.cur_from, p.cur_to, 'web') ->> 'salesCents')::bigint,
+      'tienda', (public.sales_totals(p.cur_from, p.cur_to, 'tienda') ->> 'salesCents')::bigint,
+      'whatsapp', (public.sales_totals(p.cur_from, p.cur_to, 'whatsapp') ->> 'salesCents')::bigint),
+    'bars', (select jsonb_agg(jsonb_build_object('idx', b.idx, 'kind', b.kind, 'from', b.b_from, 'to', b.b_to,
+                                'salesCents', (t ->> 'salesCents')::bigint, 'profitCents', (t ->> 'profitCents')::bigint,
+                                'withoutCostCents', (t ->> 'withoutCostCents')::bigint) order by b.idx)
+             from public.dashboard_buckets(p_period, v_now) b
+             cross join lateral public.sales_totals(public.la_paz_start(b.b_from),
+               least(public.la_paz_start(b.b_to + 1), p.cur_to)) t),
+    'top', coalesce((select jsonb_agg(jsonb_build_object('productId', t.product_id, 'name', t.name, 'units', t.units,
+                       'revenueCents', t.revenue, 'profitCents', t.profit, 'unitsWithoutCost', t.without_cost, 'stock', t.stock)
+                       order by t.units desc, t.revenue desc, t.name) from top t), '[]'::jsonb),
+    'customers', jsonb_build_object(
+      'buyers', (select count(*) from buyers),
+      'new', (select count(*) from buyers b join first_web f using (customer_id) where f.first_at >= p.cur_from),
+      'returning', (select count(*) from buyers b join first_web f using (customer_id) where f.first_at < p.cur_from)),
+    'ordersByStatus', coalesce((select jsonb_object_agg(s.status, s.n) from (
+                         select o.status::text as status, count(*) as n from public.orders o
+                         where o.created_at >= p.cur_from and o.created_at < p.cur_to group by o.status) s), '{}'::jsonb)
+  ) into v_result;
+  return v_result;
+end;
+$$;
+revoke execute on function public.admin_dashboard_sales(text, timestamptz) from public, anon;
+grant execute on function public.admin_dashboard_sales(text, timestamptz) to authenticated;
+
+-- Lo que es "ahora": pendientes, se está agotando e inventario ----------------------------------------------
+create or replace function public.admin_dashboard_now()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_result jsonb;
+begin
+  perform public.require_admin();
+
+  with sold30 as (
+    select l.product_id, sum(l.quantity) as units
+    from public.sales_lines(now() - interval '30 days', now() + interval '1 microsecond') l
+    group by l.product_id
+  ),
+  low as (
+    select p.id, p.name, p.stock, coalesce(s.units, 0) as sold30d
+    from public.products p
+    left join sold30 s on s.product_id = p.id
+    where p.is_active and not p.is_sample and p.stock between 0 and 3
+    order by sold30d desc, p.stock, p.name
+    limit 10
+  ),
+  -- Unidades en la tienda: disponibles + apartadas por pedidos web pendientes.
+  shelf as (
+    select p.id, p.name, p.price_cents, p.stock + public.reserved_units_of(p.id) as units, c.unit_cost_cents as cost
+    from public.products p
+    cross join lateral public.product_current_cost(p.id) c
+    where not p.is_sample
+  ),
+  inv as (select * from shelf where units > 0)
+  select jsonb_build_object(
+    'pendingReview', (select count(*) from public.orders o where o.status = 'en_revision'),
+    'pendingReviewOver24h', (select count(*) from public.orders o
+                             where o.status = 'en_revision' and o.status_changed_at < now() - interval '24 hours'),
+    'toDeliver', (select count(*) from public.orders o where o.status in ('pagado', 'enviado', 'listo_para_recoger')),
+    'purchasesToArrive', (select count(*) from public.purchases where status = 'encargada'),
+    'debt', jsonb_build_object(
+      'bobCents', (select coalesce(sum(b.debt_cents), 0) from public.purchase_balances b where b.currency = 'BOB' and b.debt_cents > 0),
+      'usdCents', (select coalesce(sum(b.debt_cents), 0) from public.purchase_balances b where b.currency = 'USD' and b.debt_cents > 0)),
+    'runningLow', jsonb_build_object(
+      'items', coalesce((select jsonb_agg(jsonb_build_object(
+                  'productId', l.id, 'name', l.name, 'stock', l.stock, 'sold30d', l.sold30d,
+                  'reorder', (select jsonb_build_object('supplierName', s.name, 'contactName', s.contact_name,
+                                                        'whatsapp', s.whatsapp, 'quantity', i.quantity_received)
+                              from public.purchase_items i
+                              join public.purchases pu on pu.id = i.purchase_id
+                              join public.suppliers s on s.id = pu.supplier_id
+                              where i.product_id = l.id and pu.status = 'recibida' and i.quantity_received > 0
+                              order by pu.received_at desc, i.id desc limit 1))
+                  order by l.sold30d desc, l.stock, l.name) from low l), '[]'::jsonb),
+      'lowStockCount', (select count(*) from public.products p where p.is_active and p.stock between 1 and 3),
+      -- Igual que el filtro 'agotados' de Productos (visibles u ocultos), al que lleva el enlace.
+      'outOfStockCount', (select count(*) from public.products p where p.stock = 0)),
+    'inventory', jsonb_build_object(
+      'products', (select count(*) from inv),
+      'units', (select coalesce(sum(units), 0) from inv),
+      'costValueCents', (select coalesce(sum(units::bigint * cost) filter (where cost is not null), 0) from inv),
+      'saleValueCents', (select coalesce(sum(units::bigint * price_cents) filter (where price_cents > 0), 0) from inv),
+      'potentialProfitCents', (select coalesce(sum(units::bigint * (price_cents - cost)) filter (where cost is not null and price_cents > 0), 0) from inv),
+      'withoutCost', jsonb_build_object(
+        'products', (select count(*) from inv where cost is null),
+        'units', (select coalesce(sum(units), 0) from inv where cost is null),
+        'items', coalesce((select jsonb_agg(jsonb_build_object('productId', x.id, 'name', x.name) order by x.name)
+                           from (select id, name from inv where cost is null order by name limit 20) x), '[]'::jsonb)),
+      'withoutPrice', jsonb_build_object(
+        'products', (select count(*) from inv where price_cents = 0),
+        'items', coalesce((select jsonb_agg(jsonb_build_object('productId', x.id, 'name', x.name) order by x.name)
+                           from (select id, name from inv where price_cents = 0 order by name limit 20) x), '[]'::jsonb)),
+      'samplesWithStock', (select count(*) from public.products p where p.is_sample and p.stock + public.reserved_units_of(p.id) > 0))
+  ) into v_result;
+  return v_result;
+end;
+$$;
+revoke execute on function public.admin_dashboard_now() from public, anon;
+grant execute on function public.admin_dashboard_now() to authenticated;

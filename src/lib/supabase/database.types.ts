@@ -545,6 +545,12 @@ isOneToOne: false
               "email": string,"full_name": string,"phone": string
             }[]
                            },
+"admin_dashboard_now":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"admin_dashboard_sales":
+{ Args: { "p_now"?: string,"p_period": string }; Returns: Json
+                           },
 "admin_dashboard_summary":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -572,6 +578,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "product_id": string,"quantity": number
             }[]
+                           },
+"admin_sales_list":
+{ Args: { "p_channel"?: string,"p_from"?: string,"p_limit"?: number,"p_period"?: string,"p_to"?: string,"p_without_cost"?: boolean }; Returns: Json
                            },
 "admin_send_test_push":
 { Args: Record<PropertyKey, never>; Returns: undefined
@@ -620,6 +629,16 @@ isOneToOne: false
               "order_id": string,"order_number": number
             }[]
                            },
+"dashboard_buckets":
+{ Args: { "p_now": string,"p_period": string }; Returns: {
+              "b_from": string,"b_to": string,"idx": number,"kind": string
+            }[]
+                           },
+"dashboard_period":
+{ Args: { "p_now": string,"p_period": string }; Returns: {
+              "cur_from": string,"cur_to": string,"list_from": string,"list_to": string,"prev_from": string,"prev_to": string
+            }[]
+                           },
 "delete_sample_products":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -640,6 +659,9 @@ isOneToOne: false
                            },
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"la_paz_start":
+{ Args: { "p_day": string }; Returns: string
                            },
 "next_free_product_slug":
 { Args: { "p_base": string }; Returns: string
@@ -671,6 +693,14 @@ isOneToOne: false
                            },
 "restock_order":
 { Args: { "p_order_id": string }; Returns: undefined
+                           },
+"sales_lines":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "channel": string,"customer_id": string,"delivery_fee_cents": number,"manual_sale_id": string,"order_id": string,"order_number": number,"product_id": string,"product_name": string,"quantity": number,"sold_at": string,"unit_cost_cents": number,"unit_price_cents": number
+            }[]
+                           },
+"sales_totals":
+{ Args: { "p_channel"?: string,"p_from": string,"p_to": string,"p_without_cost"?: boolean }; Returns: Json
                            },
 "set_stock_reason":
 { Args: { "p_note"?: string,"p_reason": string,"p_ref"?: string }; Returns: undefined
