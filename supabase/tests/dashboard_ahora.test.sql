@@ -12,6 +12,8 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000c1', 'cliente@test.bo');
 update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000000ad';
 insert into public.categories (id, name, slug) values ('00000000-0000-0000-0000-0000000000ca', 'Test', 't-cat');
+-- Todo lo que ya existe (semilla o restos de e2e) cuenta como ejemplo: el inventario parte de cero.
+update public.products set is_sample = true;
 -- P1 visible con costo; P2 visible sin costo; P3 oculto sin precio (costo de compra); P4 visible con compra; P5 agotado.
 insert into public.products (id, name, slug, category_id, price_cents, stock, is_active) values
   ('00000000-0000-0000-0000-0000000000d1', 'Juego P1', 't-p1', '00000000-0000-0000-0000-0000000000ca', 5000, 5, true),

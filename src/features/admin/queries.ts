@@ -297,27 +297,6 @@ export async function getSettingsData(): Promise<SettingsData> {
   };
 }
 
-// Portada ---------------------------------------------------------------------------------------------
-
-export type DashboardSummary = {
-  pendingReview: number;
-  pendingReviewOver24h: number;
-  toDeliver: number;
-  salesToday: { cents: number; count: number };
-  salesMonth: { cents: number; count: number };
-  shippingMonthCents: number;
-  lowStock: { id: string; name: string; stock: number }[];
-  outOfStock: number;
-};
-
-/** Números de la portada (reglas de "venta" en admin_dashboard_summary). */
-export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("admin_dashboard_summary");
-  if (error) throw error;
-  return data as unknown as DashboardSummary;
-}
-
 // Costo y ganancia de un producto -------------------------------------------------------------------------
 
 export type ProductCostSummary = {
