@@ -4,7 +4,7 @@ import { escapeLike, normalizeSearch } from "@/lib/search";
 import { supabaseEnv } from "@/lib/supabase/env";
 import { createPublicSupabase } from "@/lib/supabase/public";
 import { settingsFromRow } from "./filters";
-import type { CatalogFilters, Category, ProductCardData, ProductDetail, StoreSettings } from "./types";
+import type { CatalogFilters, Category, ProductCardData, ProductDetail, StorePhoto, StoreSettings } from "./types";
 
 const PRODUCT_COLUMNS =
   "id, slug, name, description, price_cents, compare_at_cents, min_age, min_players, max_players, stock, is_new, created_at, categories!inner(name, slug), product_images(path, alt, sort_order)";
@@ -138,8 +138,16 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
 export async function getStoreSettings(): Promise<StoreSettings> {
   const { data, error } = await createPublicSupabase()
     .from("store_settings")
-    .select("store_name, tagline, whatsapp_phone, address, pickup_hours")
+    .select("store_name, tagline, whatsapp_phone, address, pickup_hours, zone, maps_url, latitude, longitude")
     .maybeSingle();
   if (error) throw error;
   return settingsFromRow(data);
+}
+
+/** Fotos de la tienda para la postal de la portada, en su orden. */
+export async function listStorePhotos(): Promise<StorePhoto[]> {
+  const { data, error } = await createPublicSupabase().from("store_photos").select("id, path, caption").order("sort_order").order("created_at");
+  if (error) throw error;
+  const { url } = supabaseEnv();
+  return (data ?? []).map((p) => ({ id: p.id, url: productImageUrl(p.path, url), caption: p.caption }));
 }

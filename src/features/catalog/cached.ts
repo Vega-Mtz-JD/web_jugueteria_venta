@@ -14,6 +14,13 @@ export async function getStoreSettings() {
   return queries.getStoreSettings();
 }
 
+export async function listStorePhotos() {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(CATALOG_TAG);
+  return queries.listStorePhotos();
+}
+
 export async function listCategories() {
   "use cache";
   cacheLife("minutes");

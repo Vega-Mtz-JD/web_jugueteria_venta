@@ -22,6 +22,16 @@ test.describe("página de inicio", () => {
     expect(running).toBeGreaterThan(0);
   });
 
+  test("sin fotos la portada muestra el cubo y Visítanos con la dirección", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("cube3d")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Fotos de la tienda" })).toHaveCount(0);
+    const visit = page.getByRole("region", { name: "Visítanos en La Paz" });
+    await expect(visit).toContainText("La Paz, Bolivia");
+    await expect(visit.getByRole("link", { name: "Cómo llegar" })).toHaveAttribute("href", /^https:\/\/www\.google\.com\/maps\/search\//);
+    await expect(visit.getByRole("button", { name: "Ver el mapa" })).toHaveCount(0);
+  });
+
   test("no hay scroll horizontal", async ({ page }) => {
     await page.goto("/");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

@@ -70,6 +70,15 @@ describe("settingsFromRow", () => {
       whatsappPhone: null,
       address: null,
       pickupHours: null,
+      zone: null,
+      mapsUrl: null,
+      latitude: null,
+      longitude: null,
     });
+  });
+
+  it("lee la ubicación (numeric llega como texto o número)", () => {
+    const row = { store_name: "Ludiq", tagline: null, whatsapp_phone: null, address: "Calle 1", pickup_hours: null, zone: "Sopocachi", maps_url: "https://maps.app.goo.gl/AbC123", latitude: "-16.5103", longitude: -68.1267 };
+    expect(settingsFromRow(row)).toMatchObject({ zone: "Sopocachi", mapsUrl: "https://maps.app.goo.gl/AbC123", latitude: -16.5103, longitude: -68.1267 });
   });
 });

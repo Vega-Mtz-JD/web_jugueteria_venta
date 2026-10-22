@@ -99,6 +99,60 @@ test.describe("ajustes del panel", () => {
     await expect(store.getByLabel("Zona (ej.: Sopocachi)")).toHaveValue("Sopocachi");
   });
 
+  test("las fotos y la ubicación aparecen en la portada", async ({ page, browser }) => {
+    await clearStorePhotos();
+    await loginAsAdmin(page);
+    await page.goto("/panel/ajustes");
+    const photos = page.getByRole("region", { name: "Fotos de la tienda" });
+    const file = path.join(__dirname, "fixtures", "captura.png");
+    for (const caption of ["Nuestra vitrina", "El Illimani desde la tienda"]) {
+      await photos.getByLabel("Elegir foto").setInputFiles(file);
+      await photos.getByLabel("Frase", { exact: true }).fill(caption);
+      await photos.getByRole("button", { name: "Subir foto" }).click();
+      await expect(photos.getByRole("list", { name: "Fotos subidas" }).getByRole("textbox").last()).toHaveValue(caption);
+    }
+    const store = page.getByRole("region", { name: "Tienda", exact: true });
+    await store.getByLabel("Zona (ej.: Sopocachi)").fill("Sopocachi");
+    await store.getByLabel("Enlace de Google Maps").fill("https://maps.app.goo.gl/AbC123");
+    await store.getByLabel("Coordenadas").fill("-16.5103, -68.1267");
+    await store.getByRole("button", { name: "Guardar" }).click();
+    await expect(store.getByRole("status")).toHaveText("Guardado");
+
+    // Un comprador cualquiera, sin sesión.
+    const buyer = await (await browser.newContext()).newPage();
+    await buyer.goto("/");
+    const carousel = buyer.getByRole("region", { name: "Fotos de la tienda" });
+    await expect(carousel.getByRole("group")).toHaveCount(2);
+    await expect(carousel.getByRole("img").first()).toHaveAttribute("alt", "Nuestra vitrina");
+    await expect(buyer.getByTestId("cube3d")).toHaveCount(0);
+    await expect(buyer.getByText("📍 Sopocachi, La Paz")).toBeVisible();
+    await carousel.getByRole("button", { name: "Ver foto 2 de 2" }).click();
+    await expect(carousel.getByRole("button", { name: "Ver foto 2 de 2" })).toHaveAttribute("aria-current", "true");
+
+    const visit = buyer.getByRole("region", { name: "Visítanos en La Paz" });
+    await expect(visit.getByRole("link", { name: "Cómo llegar" })).toHaveAttribute("href", "https://maps.app.goo.gl/AbC123");
+    await expect(visit.locator("iframe")).toHaveCount(0);
+    await visit.getByRole("button", { name: "Ver el mapa" }).click();
+    await expect(visit.locator("iframe")).toHaveAttribute("src", /q=-16\.5103,-68\.1267/);
+
+    // Con movimiento reducido no pasa sola.
+    await buyer.emulateMedia({ reducedMotion: "reduce" });
+    await buyer.reload();
+    await buyer.waitForTimeout(6000);
+    await expect(carousel.getByRole("button", { name: "Ver foto 1 de 2" })).toHaveAttribute("aria-current", "true");
+    await buyer.context().close();
+
+    // Sin fotos vuelve el cubo.
+    for (const caption of ["Nuestra vitrina", "El Illimani desde la tienda"]) {
+      const item = photos.getByRole("listitem").filter({ has: page.getByRole("textbox", { name: `Frase de «${caption}»` }) });
+      await item.getByRole("button", { name: "Quitar" }).click();
+      await item.getByRole("button", { name: "Sí, quitar" }).click();
+      await expect(item).toHaveCount(0);
+    }
+    await page.goto("/");
+    await expect(page.getByTestId("cube3d")).toBeVisible();
+  });
+
   test("borrar una billetera pide confirmación (un toque de más no quita el QR)", async ({ page }) => {
     const admin = adminClient();
     const { error } = await admin.from("payment_methods").insert({ name: "Billetera e2e", qr_path: "/samples/qr-yape.svg", sort_order: 99 });

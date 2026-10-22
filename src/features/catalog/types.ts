@@ -42,4 +42,10 @@ export type StoreSettings = {
   whatsappPhone: string | null;
   address: string | null;
   pickupHours: string | null;
+  zone: string | null;
+  mapsUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
+
+export type StorePhoto = { id: string; url: string; caption: string };
