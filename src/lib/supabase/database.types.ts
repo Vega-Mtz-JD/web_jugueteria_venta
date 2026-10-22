@@ -477,16 +477,30 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"store_settings": {
+                },"store_photos": {
                   Row: {
-                    "address": string | null,"delivery_fee_home_cents": number,"delivery_fee_meeting_cents": number,"id": number,"pickup_hours": string | null,"store_name": string,"tagline": string | null,"updated_at": string,"whatsapp_phone": string | null
+                    "caption": string,"created_at": string,"id": string,"path": string,"sort_order": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"delivery_fee_home_cents"?: number,"delivery_fee_meeting_cents"?: number,"id"?: number,"pickup_hours"?: string | null,"store_name": string,"tagline"?: string | null,"updated_at"?: string,"whatsapp_phone"?: string | null
+                    "caption": string,"created_at"?: string,"id"?: string,"path": string,"sort_order"?: number
                   }
                   Update: {
-                    "address"?: string | null,"delivery_fee_home_cents"?: number,"delivery_fee_meeting_cents"?: number,"id"?: number,"pickup_hours"?: string | null,"store_name"?: string,"tagline"?: string | null,"updated_at"?: string,"whatsapp_phone"?: string | null
+                    "caption"?: string,"created_at"?: string,"id"?: string,"path"?: string,"sort_order"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"store_settings": {
+                  Row: {
+                    "address": string | null,"delivery_fee_home_cents": number,"delivery_fee_meeting_cents": number,"id": number,"latitude": number | null,"longitude": number | null,"maps_url": string | null,"pickup_hours": string | null,"store_name": string,"tagline": string | null,"updated_at": string,"whatsapp_phone": string | null,"zone": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "address"?: string | null,"delivery_fee_home_cents"?: number,"delivery_fee_meeting_cents"?: number,"id"?: number,"latitude"?: number | null,"longitude"?: number | null,"maps_url"?: string | null,"pickup_hours"?: string | null,"store_name": string,"tagline"?: string | null,"updated_at"?: string,"whatsapp_phone"?: string | null,"zone"?: string | null
+                  }
+                  Update: {
+                    "address"?: string | null,"delivery_fee_home_cents"?: number,"delivery_fee_meeting_cents"?: number,"id"?: number,"latitude"?: number | null,"longitude"?: number | null,"maps_url"?: string | null,"pickup_hours"?: string | null,"store_name"?: string,"tagline"?: string | null,"updated_at"?: string,"whatsapp_phone"?: string | null,"zone"?: string | null
                   }
                   Relationships: [
                     
