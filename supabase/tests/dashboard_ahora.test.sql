@@ -100,7 +100,18 @@ select is(pg_temp.now_() -> 'runningLow' -> 'items' -> 2 -> 'reorder',
   '{"supplierName": "Proveedor Uno", "contactName": "Don Luis", "whatsapp": "71111111", "quantity": 1}'::jsonb,
   'P4: pedir de nuevo al último proveedor');
 select is((pg_temp.now_() -> 'runningLow' ->> 'lowStockCount')::int, 2, 'visibles con 1 a 3: P2 y P4');
-select is((pg_temp.now_() -> 'runningLow' ->> 'outOfStockCount')::int, 1, 'visibles agotados: P5');
+-- Un juego de ejemplo visible con poco stock no se sugiere para volver a comprar.
+select pg_temp.as_postgres();
+update public.products set is_active = true, stock = 1 where slug = 'jenga';
+insert into public.products (name, slug, category_id, price_cents, stock, is_active)
+values ('Juego P6', 't-p6', '00000000-0000-0000-0000-0000000000ca', 0, 0, false);
+select set_config('t.agotados', (select count(*) from public.products where stock = 0)::text, true);
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000ad');
+select ok(not exists (select 1 from jsonb_array_elements(pg_temp.now_() -> 'runningLow' -> 'items') i where i ->> 'name' = 'Jenga'),
+  'los juegos de ejemplo no aparecen en se está agotando');
+select is((pg_temp.now_() -> 'runningLow' ->> 'outOfStockCount')::int, current_setting('t.agotados')::int,
+  'agotados cuenta lo mismo que el filtro de Productos (visibles u ocultos)');
+select ok(current_setting('t.agotados')::int > 1, 'hay agotados ocultos además de P5');
 
 -- Pendientes ------------------------------------------------------------------------------------------------
 select is(pg_temp.now_() -> 'debt', '{"bobCents": 3500, "usdCents": 1500}'::jsonb, 'deuda por moneda; la anulada no suma');

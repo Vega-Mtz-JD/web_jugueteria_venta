@@ -216,7 +216,9 @@ src/
         bars.ts
         compare.test.ts
         compare.ts
+        CustomersOrders.test.tsx
         CustomersOrders.tsx
+        InventoryCard.test.tsx
         InventoryCard.tsx
         PendingCards.tsx
         period.test.ts
@@ -435,437 +437,52 @@ vitest.setup.ts
 <files>
 This section contains the contents of the repository's files.
 
-<file path="src/features/admin/dashboard/CustomersOrders.tsx">
-import Link from "next/link";
-import { ADMIN_STATUS_LABEL, type OrderStatus } from "@/features/orders/status";
+<file path="src/features/admin/dashboard/CustomersOrders.test.tsx">
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { CustomersOrders } from "./CustomersOrders";
 import type { DashboardSales } from "./queries";
 
-const box = "rounded-3xl border border-[#eadcc4] bg-papel p-4 sm:p-6";
+const data = { customers: { buyers: 0, new: 0, returning: 0 }, ordersByStatus: {} } as unknown as DashboardSales;
 
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl bg-background/50 px-3 py-2">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="font-serif text-2xl font-extrabold tabular-nums">{value}</dd>
-    </div>
-  );
-}
+afterEach(cleanup);
 
-/** Clientes de la tienda web y pedidos creados en el período, por estado. */
-export function CustomersOrders({ data }: { data: DashboardSales }) {
-  const statuses = (Object.keys(ADMIN_STATUS_LABEL) as OrderStatus[]).filter((s) => (data.ordersByStatus[s] ?? 0) > 0);
-  return (
-    <>
-      <section aria-labelledby="clientes" className={box}>
-        <h2 id="clientes" className="mb-1 font-serif text-xl font-bold">
-          Clientes
-        </h2>
-        <p className="mb-3 text-sm text-muted-foreground">Solo cuenta la tienda web</p>
-        <dl className="grid grid-cols-3 gap-2">
-          <Stat label="Compraron" value={data.customers.buyers} />
-          <Stat label="Nuevos" value={data.customers.new} />
-          <Stat label="Volvieron a comprar" value={data.customers.returning} />
-        </dl>
-      </section>
-      <section aria-labelledby="pedidos-estado" className={box}>
-        <h2 id="pedidos-estado" className="mb-3 font-serif text-xl font-bold">
-          Pedidos
-        </h2>
-        {statuses.length === 0 ? (
-          <p className="text-muted-foreground">No hay pedidos nuevos en este período.</p>
-        ) : (
-          <ul className="flex flex-wrap gap-2">
-            {statuses.map((s) => (
-              <li key={s}>
-                <Link
-                  href={`/panel/pedidos?tab=historial&estado=${s}`}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full bg-background/50 px-3 text-sm hover:bg-crema-2"
-                >
-                  {ADMIN_STATUS_LABEL[s]} <span className="font-bold tabular-nums">{data.ordersByStatus[s]}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </>
-  );
-}
+describe("CustomersOrders", () => {
+  it("agrupa los estados como el spec y no enlaza a listas con otro número", () => {
+    render(<CustomersOrders data={{ ...data, ordersByStatus: { enviado: 1, listo_para_recoger: 2, cancelado: 1, rechazado: 1, entregado: 3 } }} />);
+    const pedidos = screen.getByRole("region", { name: "Pedidos" });
+    expect(pedidos).toHaveTextContent("Creados en este período");
+    expect(pedidos).toHaveTextContent("Enviado o listo3");
+    expect(pedidos).toHaveTextContent("Cancelado o rechazado2");
+    expect(pedidos).toHaveTextContent("Entregado3");
+    expect(pedidos.querySelectorAll("a")).toHaveLength(0);
+  });
+});
 </file>
 
-<file path="src/features/admin/dashboard/InventoryCard.tsx">
-import Link from "next/link";
-import { formatBs } from "@/lib/money";
-import type { DashboardNow, NamedProduct } from "./queries";
-
-function Missing({ title, items, total }: { title: string; items: NamedProduct[]; total: number }) {
-  if (total === 0) return null;
-  return (
-    <details className="mt-2 rounded-xl bg-madera/10 px-3 py-2 text-sm">
-      <summary className="cursor-pointer font-semibold">{title}</summary>
-      <ul className="mt-2 grid gap-1">
-        {items.map((p) => (
-          <li key={p.productId}>
-            <Link href={`/panel/productos/${p.productId}`} className="text-verde underline-offset-4 hover:underline">
-              {p.name}
-            </Link>
-          </li>
-        ))}
-        {total > items.length && <li className="text-muted-foreground">y {total - items.length} más</li>}
-      </ul>
-    </details>
-  );
-}
-
-/** Cuánto vale lo que hay en la tienda (disponible + apartado), sin los juegos de ejemplo. */
-export function InventoryCard({ inv }: { inv: DashboardNow["inventory"] }) {
-  const n = (v: number, one: string, many: string) => (v === 1 ? `1 ${one}` : `${v} ${many}`);
-  return (
-    <section aria-labelledby="inventario" className="rounded-3xl border border-[#eadcc4] bg-papel p-4 sm:p-6">
-      <h2 id="inventario" className="mb-1 font-serif text-xl font-bold">
-        Inventario
-      </h2>
-      <p className="text-tinta-suave">
-        {n(inv.products, "juego", "juegos")} · {n(inv.units, "unidad", "unidades")}
-      </p>
-      <dl className="mt-3 grid gap-2">
-        <div className="flex justify-between gap-3">
-          <dt>Valor a costo</dt>
-          <dd className="font-semibold tabular-nums">{formatBs(inv.costValueCents)}</dd>
-        </div>
-        <div className="flex justify-between gap-3">
-          <dt>Valor a precio de venta</dt>
-          <dd className="font-semibold tabular-nums">{formatBs(inv.saleValueCents)}</dd>
-        </div>
-        <div className="flex justify-between gap-3 border-t border-[#eadcc4] pt-2">
-          <dt className="font-semibold">Si vendes todo, ganarías</dt>
-          <dd className="font-serif text-xl font-extrabold tabular-nums text-verde">{formatBs(inv.potentialProfitCents)}</dd>
-        </div>
-      </dl>
-      <Missing
-        title={`${n(inv.withoutCost.products, "juego", "juegos")} sin costo anotado (${n(inv.withoutCost.units, "unidad", "unidades")})`}
-        items={inv.withoutCost.items}
-        total={inv.withoutCost.products}
-      />
-      <Missing title={`${n(inv.withoutPrice.products, "juego", "juegos")} sin precio`} items={inv.withoutPrice.items} total={inv.withoutPrice.products} />
-      {inv.samplesWithStock > 0 && (
-        <p className="mt-2 text-sm text-muted-foreground">
-          No se cuentan {inv.samplesWithStock} juegos de ejemplo; puedes borrarlos en{" "}
-          <Link href="/panel/ajustes" className="text-verde underline-offset-4 hover:underline">
-            Ajustes
-          </Link>
-          .
-        </p>
-      )}
-    </section>
-  );
-}
-</file>
-
-<file path="src/features/admin/dashboard/PendingCards.tsx">
-import Link from "next/link";
-import { ChevronRightIcon, ClockAlertIcon } from "lucide-react";
-import { formatMoney } from "@/features/admin/purchases/money";
-import { cn } from "@/lib/utils";
+<file path="src/features/admin/dashboard/InventoryCard.test.tsx">
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { InventoryCard } from "./InventoryCard";
 import type { DashboardNow } from "./queries";
 
-const card = "flex min-h-28 flex-col justify-between gap-2 rounded-3xl border border-[#eadcc4] bg-papel p-4 transition-colors hover:border-madera";
-const big = "font-serif text-3xl font-extrabold tabular-nums leading-none";
+const inv = (o: Partial<DashboardNow["inventory"]> = {}): DashboardNow["inventory"] => ({
+  products: 3, units: 5, costValueCents: 10_000_00, saleValueCents: 15_000_00, potentialProfitCents: 3_000_00,
+  withoutCost: { products: 0, units: 0, items: [] }, withoutPrice: { products: 0, items: [] }, samplesWithStock: 0, ...o,
+});
 
-function Card({ href, title, alert, children }: { href: string; title: string; alert?: boolean; children: React.ReactNode }) {
-  return (
-    <Link href={href} className={cn(card, alert && "border-rojo/40 bg-rojo/5")}>
-      <span className="flex items-center justify-between gap-2 font-semibold text-tinta-suave">
-        {title}
-        <ChevronRightIcon aria-hidden className="size-5 shrink-0" />
-      </span>
-      {children}
-    </Link>
-  );
-}
+afterEach(cleanup);
 
-/** Lo pendiente: siempre "ahora", no depende del período. */
-export function PendingCards({ now }: { now: DashboardNow }) {
-  const owes = now.debt.bobCents > 0 || now.debt.usdCents > 0;
-  return (
-    <section aria-labelledby="pendiente">
-      <h2 id="pendiente" className="mb-3 font-serif text-xl font-bold">
-        Pendiente
-      </h2>
-      <div className="grid grid-cols-2 gap-3">
-        <Card href="/panel/pedidos" title="Por revisar" alert={now.pendingReviewOver24h > 0}>
-          <span className={big}>{now.pendingReview}</span>
-          {now.pendingReviewOver24h > 0 && (
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-rojo">
-              <ClockAlertIcon aria-hidden className="size-4" />
-              {now.pendingReviewOver24h === 1 ? "1 lleva más de 24 h" : `${now.pendingReviewOver24h} llevan más de 24 h`}
-            </span>
-          )}
-        </Card>
-        <Card href="/panel/pedidos?tab=entregar" title="Por entregar">
-          <span className={big}>{now.toDeliver}</span>
-        </Card>
-        <Card href="/panel/compras" title="Compras por llegar">
-          <span className={big}>{now.purchasesToArrive}</span>
-        </Card>
-        <Card href="/panel/compras" title="Debes a proveedores" alert={owes}>
-          {owes ? (
-            <span className={cn("grid gap-1 font-serif text-xl font-extrabold tabular-nums leading-none text-rojo")}>
-              {now.debt.bobCents > 0 && <span>{formatMoney(now.debt.bobCents, "BOB")}</span>}
-              {now.debt.usdCents > 0 && <span>{formatMoney(now.debt.usdCents, "USD")}</span>}
-            </span>
-          ) : (
-            <span className={big}>Bs 0</span>
-          )}
-        </Card>
-      </div>
-    </section>
-  );
-}
-</file>
-
-<file path="src/features/admin/dashboard/ProfitBars.tsx">
-import Link from "next/link";
-import { formatBs } from "@/lib/money";
-import { cn } from "@/lib/utils";
-import { barScale } from "./bars";
-import { barLabel } from "./period";
-import type { Bar } from "./queries";
-import { salesHref } from "./sales-filter";
-
-const short = (cents: number) => formatBs(cents).replace("Bs ", "");
-
-/** Barras de ganancia hechas a mano: cada una lleva a la lista de ventas de su día, semana o mes. */
-export function ProfitBars({ bars }: { bars: Bar[] }) {
-  const scale = barScale(bars.map((b) => b.profitCents));
-  const hasNegative = scale.some((s) => s.negative);
-  return (
-    <ol aria-label="Ganancia por período" className="mt-4 flex gap-1 sm:gap-2">
-      {bars.map((b, i) => {
-        const s = scale[i];
-        const current = i === bars.length - 1;
-        const label = barLabel(b.kind, b.from, b.idx);
-        return (
-          <li key={b.idx} className="min-w-0 flex-1">
-            <Link
-              href={salesHref({ from: b.from, to: b.to })}
-              aria-label={`${label}: ${formatBs(b.profitCents)} de ganancia`}
-              className="group flex flex-col items-stretch rounded-lg px-0.5 pt-1 hover:bg-crema-2"
-            >
-              <span aria-hidden className="truncate text-center text-[11px] font-semibold tabular-nums text-tinta-suave sm:text-xs">
-                {short(b.profitCents)}
-              </span>
-              <span aria-hidden className="flex h-28 items-end">
-                {!s.negative && (
-                  <span
-                    className={cn("w-full rounded-t-md", current ? "bg-verde" : "bg-verde/35 group-hover:bg-verde/55")}
-                    style={{ height: `${Math.max(s.pct, b.profitCents > 0 ? 2 : 0)}%` }}
-                  />
-                )}
-              </span>
-              {hasNegative && (
-                <span aria-hidden className="flex h-8 items-start border-t border-tinta-suave/30">
-                  {s.negative && <span className="w-full rounded-b-md bg-rojo/70" style={{ height: `${Math.max(s.pct, 4)}%` }} />}
-                </span>
-              )}
-              <span aria-hidden className={cn("mt-1 text-center text-[11px] leading-tight break-words sm:text-xs", current ? "font-bold text-tinta" : "text-muted-foreground")}>
-                {label}
-              </span>
-            </Link>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-</file>
-
-<file path="src/features/admin/dashboard/ProfitHero.tsx">
-import Link from "next/link";
-import { formatBs } from "@/lib/money";
-import { cn } from "@/lib/utils";
-import { compareLine } from "./compare";
-import { previousLabel, profitTitle, type Period } from "./period";
-import { ProfitBars } from "./ProfitBars";
-import type { DashboardSales } from "./queries";
-import { CHANNELS, salesHref } from "./sales-filter";
-
-const plural = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`);
-const TONE = { up: "text-verde", down: "text-rojo", same: "text-tinta-suave", neutral: "text-muted-foreground" } as const;
-const link = "font-semibold text-verde underline-offset-4 hover:underline";
-
-/** Arriba de la portada: cuánto ganó, comparado con el período anterior, con sus barras. */
-export function ProfitHero({ data, period }: { data: DashboardSales; period: Period }) {
-  const cur = data.current;
-  const cmp = compareLine(cur, data.previous, previousLabel(period, data.range));
-  return (
-    <section aria-label="Ganancia" className="rounded-3xl border border-[#eadcc4] bg-papel p-4 sm:p-6">
-      <Link href={salesHref({ period })} className="group block">
-        <span className="block font-semibold text-tinta-suave">{profitTitle(period, data.range)}</span>
-        <span className={cn("block font-serif text-5xl font-extrabold tabular-nums leading-tight group-hover:underline", cur.profitCents < 0 && "text-rojo")}>
-          {formatBs(cur.profitCents)}
-        </span>
-      </Link>
-      <p className={cn("mt-1 font-semibold", TONE[cmp.tone])}>{cmp.text}</p>
-
-      <ProfitBars bars={data.bars} />
-
-      <p className="mt-4">
-        <Link href={salesHref({ period })} className={link}>
-          Vendiste {formatBs(cur.salesCents)} ({plural(cur.count, "venta", "ventas")}, {plural(cur.units, "juego", "juegos")})
-        </Link>{" "}
-        · te costaron {formatBs(cur.costCents)}
-      </p>
-      <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-        {CHANNELS.map((c) => (
-          <Link key={c.value} href={salesHref({ period, channel: c.value })} className="underline-offset-4 hover:underline">
-            {c.label} <span className="font-semibold tabular-nums">{formatBs(data.byChannel[c.value])}</span>
-          </Link>
-        ))}
-        <span className="text-muted-foreground">Envíos cobrados: {formatBs(cur.shippingCents)}</span>
-      </p>
-      {cur.withoutCostCents > 0 && (
-        <p className="mt-3 rounded-xl bg-madera/10 px-3 py-2 text-sm">
-          <Link href={salesHref({ period, withoutCost: true })} className="font-semibold underline-offset-4 hover:underline">
-            {formatBs(cur.withoutCostCents)} en ventas sin costo anotado
-          </Link>
-          : no entran en la ganancia
-        </p>
-      )}
-    </section>
-  );
-}
-</file>
-
-<file path="src/features/admin/dashboard/RestockSection.tsx">
-import Link from "next/link";
-import { MessageCircleIcon } from "lucide-react";
-import { reorderMessage } from "@/features/admin/purchases/reorder";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
-import type { DashboardNow, DashboardSales } from "./queries";
-import { TopProducts } from "./TopProducts";
-
-const more = "inline-flex min-h-11 items-center font-semibold text-verde underline-offset-4 hover:underline";
-
-/** Qué volver a comprar: lo más vendido del período y lo que se está agotando (ahora). */
-export function RestockSection({ top, low }: { top: DashboardSales["top"]; low: DashboardNow["runningLow"] }) {
-  return (
-    <section aria-labelledby="volver-a-comprar" className="rounded-3xl border border-[#eadcc4] bg-papel p-4 sm:p-6">
-      <h2 id="volver-a-comprar" className="mb-3 font-serif text-xl font-bold">
-        Qué volver a comprar
-      </h2>
-      <TopProducts top={top} />
-
-      <h3 className="mt-5 mb-2 font-semibold">Se está agotando</h3>
-      {low.items.length === 0 ? (
-        <p className="text-muted-foreground">Nada se está agotando.</p>
-      ) : (
-        <ul aria-label="Se está agotando" className="grid grid-cols-[minmax(0,1fr)] gap-2">
-          {low.items.map((p) => (
-            <li key={p.productId} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-background/50 px-3 py-2">
-              <Link href={`/panel/productos/${p.productId}`} className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{p.name}</span>
-                <span className="block text-sm text-muted-foreground">
-                  {p.stock === 0 ? <span className="font-semibold text-rojo">Agotado</span> : `Quedan ${p.stock}`}
-                  {p.sold30d > 0 && ` · ${p.sold30d === 1 ? "1 vendido" : `${p.sold30d} vendidos`} en 30 días`}
-                </span>
-              </Link>
-              {p.reorder?.whatsapp && (
-                <a
-                  href={buildWhatsAppLink(
-                    p.reorder.whatsapp,
-                    reorderMessage({ supplierContact: p.reorder.contactName, supplierName: p.reorder.supplierName, productName: p.name, quantity: p.reorder.quantity }),
-                  )}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border-2 border-verde px-3 text-sm font-semibold text-verde hover:bg-verde/10"
-                >
-                  <MessageCircleIcon aria-hidden className="size-4" />
-                  Pedir de nuevo
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="mt-2 flex flex-wrap gap-x-4">
-        <Link href="/panel/productos?filtro=poco-stock" className={more}>
-          Ver poco stock ({low.lowStockCount})
-        </Link>
-        <Link href="/panel/productos?filtro=agotados" className={more}>
-          Ver agotados ({low.outOfStockCount})
-        </Link>
-      </p>
-    </section>
-  );
-}
-</file>
-
-<file path="src/features/admin/dashboard/TopProducts.tsx">
-"use client";
-
-import Link from "next/link";
-import { useState } from "react";
-import { formatBs } from "@/lib/money";
-import { cn } from "@/lib/utils";
-import type { TopProduct } from "./queries";
-
-const ORDERS = [
-  { value: "units", label: "Unidades" },
-  { value: "revenue", label: "Ingresos" },
-] as const;
-
-/** Lo más vendido del período, por unidades o por ingresos (la base ya trae los 20 primeros). */
-export function TopProducts({ top }: { top: TopProduct[] }) {
-  const [order, setOrder] = useState<"units" | "revenue">("units");
-  const rows = [...top]
-    .sort((a, b) => (order === "units" ? b.units - a.units || b.revenueCents - a.revenueCents : b.revenueCents - a.revenueCents || b.units - a.units))
-    .slice(0, 10);
-  return (
-    <div>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-semibold">Lo más vendido</h3>
-        <div role="group" aria-label="Ordenar por" className="flex gap-1 rounded-full bg-crema-2 p-1">
-          {ORDERS.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              aria-pressed={order === o.value}
-              onClick={() => setOrder(o.value)}
-              className={cn("min-h-9 rounded-full px-3 text-sm font-semibold", order === o.value ? "bg-verde text-crema" : "text-tinta-suave")}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      {rows.length === 0 ? (
-        <p className="text-muted-foreground">Todavía no hay ventas en este período.</p>
-      ) : (
-        <ol aria-label="Lo más vendido" className="grid grid-cols-[minmax(0,1fr)] gap-2">
-          {rows.map((p) => (
-            <li key={p.productId}>
-              <Link href={`/panel/productos/${p.productId}`} className="flex items-center justify-between gap-3 rounded-xl bg-background/50 px-3 py-2 hover:bg-crema-2">
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold">{p.name}</span>
-                  <span className="block text-sm text-muted-foreground">
-                    {p.units === 1 ? "1 vendido" : `${p.units} vendidos`} · quedan {p.stock}
-                  </span>
-                </span>
-                <span className="shrink-0 text-right text-sm tabular-nums">
-                  <span className="block font-semibold">{formatBs(p.revenueCents)}</span>
-                  <span className="block text-muted-foreground">
-                    {p.unitsWithoutCost === p.units ? "sin costo" : `gana ${formatBs(p.profitCents)}`}
-                  </span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-}
+describe("InventoryCard", () => {
+  it("explica que 'ganarías' solo cuenta los juegos con costo y precio", () => {
+    render(<InventoryCard inv={inv({ withoutCost: { products: 2, units: 4, items: [] }, withoutPrice: { products: 1, items: [] } })} />);
+    expect(screen.getByText("Solo cuenta los juegos con costo y precio: faltan 2 sin costo y 1 sin precio.")).toBeInTheDocument();
+  });
+  it("si a ninguno le falta nada, no lo dice", () => {
+    render(<InventoryCard inv={inv()} />);
+    expect(screen.queryByText(/Solo cuenta los juegos/)).not.toBeInTheDocument();
+  });
+});
 </file>
 
 <file path=".github/workflows/respaldo-archivos.yml">
@@ -6302,62 +5919,6 @@ export default async function PanelLayout({ children }: LayoutProps<"/panel">) {
 }
 </file>
 
-<file path="src/app/panel/page.tsx">
-import Link from "next/link";
-import { Suspense } from "react";
-import { PackagePlusIcon, StoreIcon } from "lucide-react";
-import { CustomersOrders } from "@/features/admin/dashboard/CustomersOrders";
-import { InventoryCard } from "@/features/admin/dashboard/InventoryCard";
-import { PendingCards } from "@/features/admin/dashboard/PendingCards";
-import { PeriodTabs } from "@/features/admin/dashboard/PeriodTabs";
-import { parsePeriod } from "@/features/admin/dashboard/period";
-import { ProfitHero } from "@/features/admin/dashboard/ProfitHero";
-import { getDashboardNow, getDashboardSales } from "@/features/admin/dashboard/queries";
-import { RestockSection } from "@/features/admin/dashboard/RestockSection";
-
-async function Dashboard({ searchParams }: { searchParams: PageProps<"/panel">["searchParams"] }) {
-  const period = parsePeriod((await searchParams).periodo);
-  const [sales, now] = await Promise.all([getDashboardSales(period), getDashboardNow()]);
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
-      <PeriodTabs current={period} hrefFor={(p) => `/panel?periodo=${p}`} />
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2 lg:items-start">
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
-          <ProfitHero data={sales} period={period} />
-          <PendingCards now={now} />
-        </div>
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
-          <RestockSection top={sales.top} low={now.runningLow} />
-          <InventoryCard inv={now.inventory} />
-          <CustomersOrders data={sales} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function PanelPage(props: PageProps<"/panel">) {
-  return (
-    <>
-      <h1 className="mb-5 text-3xl font-extrabold tracking-tight">Panel</h1>
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4">
-        <Link href="/panel/productos/nuevo" className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-verde px-3 text-center font-semibold text-crema hover:bg-verde-2">
-          <PackagePlusIcon aria-hidden className="size-5 shrink-0" />
-          Nuevo producto
-        </Link>
-        <Link href="/panel/productos?filtro=visibles" className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-verde px-3 text-center font-semibold text-verde hover:bg-verde/10">
-          <StoreIcon aria-hidden className="size-5 shrink-0" />
-          Vendí en tienda
-        </Link>
-      </div>
-      <Suspense fallback={<div aria-hidden className="h-96 animate-pulse rounded-3xl bg-crema-2" />}>
-        <Dashboard searchParams={props.searchParams} />
-      </Suspense>
-    </>
-  );
-}
-</file>
-
 <file path="src/app/global-error.tsx">
 "use client"; // Reemplaza al layout raíz cuando falla; por eso trae su propio <html> y estilos en línea.
 
@@ -7420,7 +6981,7 @@ export {
 
 <file path="src/features/admin/dashboard/bars.test.ts">
 import { describe, expect, it } from "vitest";
-import { barScale } from "./bars";
+import { barAmount, barScale } from "./bars";
 
 describe("barScale", () => {
   it("todo en cero no divide por cero", () => {
@@ -7441,6 +7002,17 @@ describe("barScale", () => {
     expect(barScale([])).toEqual([]);
   });
 });
+
+describe("barAmount", () => {
+  it("monto corto para que quepa encima de la barra", () => {
+    expect(barAmount(0)).toBe("0");
+    expect(barAmount(34550)).toBe("346");
+    expect(barAmount(345000)).toBe("3,5 mil");
+    expect(barAmount(1250000)).toBe("13 mil");
+    expect(barAmount(-120000)).toBe("−1,2 mil");
+    expect(barAmount(-3500)).toBe("−35");
+  });
+});
 </file>
 
 <file path="src/features/admin/dashboard/bars.ts">
@@ -7448,6 +7020,16 @@ describe("barScale", () => {
 export function barScale(values: number[]): { pct: number; negative: boolean }[] {
   const max = Math.max(0, ...values.map(Math.abs));
   return values.map((v) => ({ pct: max === 0 ? 0 : Math.round((Math.abs(v) / max) * 100), negative: v < 0 }));
+}
+
+/** Monto corto, en Bs y sin decimales, para que quepa encima de una barra angosta: "346", "3,5 mil", "13 mil". */
+export function barAmount(cents: number): string {
+  const sign = cents < 0 ? "−" : "";
+  const bs = Math.abs(cents) / 100;
+  if (bs < 1000) return `${sign}${Math.round(bs)}`;
+  const thousands = bs / 1000;
+  const text = thousands < 10 ? thousands.toFixed(1).replace(".", ",").replace(/,0$/, "") : String(Math.round(thousands));
+  return `${sign}${text} mil`;
 }
 </file>
 
@@ -7517,6 +7099,208 @@ export function compareLine(cur: SalesTotals, prev: SalesTotals, prevLabel: stri
 }
 </file>
 
+<file path="src/features/admin/dashboard/CustomersOrders.tsx">
+import type { OrderStatus } from "@/features/orders/status";
+import type { DashboardSales } from "./queries";
+
+const box = "rounded-3xl border border-[#eadcc4] bg-papel p-4 sm:p-6";
+
+// Grupos del spec §4.6. Sin enlaces: el número es de los pedidos creados en el período y la lista de Pedidos
+// no filtra por fecha, así que mostraría otra cantidad.
+const GROUPS: { label: string; statuses: OrderStatus[] }[] = [
+  { label: "Esperando pago", statuses: ["esperando_pago"] },
+  { label: "En revisión", statuses: ["en_revision"] },
+  { label: "Pagado", statuses: ["pagado"] },
+  { label: "Enviado o listo", statuses: ["enviado", "listo_para_recoger"] },
+  { label: "Entregado", statuses: ["entregado"] },
+  { label: "Cancelado o rechazado", statuses: ["cancelado", "rechazado"] },
+  { label: "Reembolsado", statuses: ["reembolsado"] },
+];
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-background/50 px-3 py-2">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="font-serif text-2xl font-extrabold tabular-nums">{value}</dd>
+    </div>
+  );
+}
+
+/** Clientes de la tienda web y pedidos creados en el período, por estado. */
+export function CustomersOrders({ data }: { data: DashboardSales }) {
+  const groups = GROUPS.map((g) => ({ label: g.label, n: g.statuses.reduce((sum, st) => sum + (data.ordersByStatus[st] ?? 0), 0) })).filter((g) => g.n > 0);
+  return (
+    <>
+      <section aria-labelledby="clientes" className={box}>
+        <h2 id="clientes" className="mb-1 font-serif text-xl font-bold">
+          Clientes
+        </h2>
+        <p className="mb-3 text-sm text-muted-foreground">Solo cuenta la tienda web</p>
+        <dl className="grid grid-cols-3 gap-2">
+          <Stat label="Compraron" value={data.customers.buyers} />
+          <Stat label="Nuevos" value={data.customers.new} />
+          <Stat label="Volvieron a comprar" value={data.customers.returning} />
+        </dl>
+      </section>
+      <section aria-labelledby="pedidos-estado" className={box}>
+        <h2 id="pedidos-estado" className="mb-1 font-serif text-xl font-bold">
+          Pedidos
+        </h2>
+        <p className="mb-3 text-sm text-muted-foreground">Creados en este período</p>
+        {groups.length === 0 ? (
+          <p className="text-muted-foreground">No hay pedidos nuevos en este período.</p>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {groups.map((g) => (
+              <li key={g.label} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-background/50 px-3 text-sm">
+                {g.label}
+                <span className="font-bold tabular-nums">{g.n}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
+  );
+}
+</file>
+
+<file path="src/features/admin/dashboard/InventoryCard.tsx">
+import Link from "next/link";
+import { formatBs } from "@/lib/money";
+import type { DashboardNow, NamedProduct } from "./queries";
+
+function Missing({ title, items, total }: { title: string; items: NamedProduct[]; total: number }) {
+  if (total === 0) return null;
+  return (
+    <details className="mt-2 rounded-xl bg-madera/10 px-3 py-2 text-sm">
+      <summary className="cursor-pointer font-semibold">{title}</summary>
+      <ul className="mt-2 grid gap-1">
+        {items.map((p) => (
+          <li key={p.productId}>
+            <Link href={`/panel/productos/${p.productId}`} className="text-verde underline-offset-4 hover:underline">
+              {p.name}
+            </Link>
+          </li>
+        ))}
+        {total > items.length && <li className="text-muted-foreground">y {total - items.length} más</li>}
+      </ul>
+    </details>
+  );
+}
+
+/** Cuánto vale lo que hay en la tienda (disponible + apartado), sin los juegos de ejemplo. */
+export function InventoryCard({ inv }: { inv: DashboardNow["inventory"] }) {
+  const n = (v: number, one: string, many: string) => (v === 1 ? `1 ${one}` : `${v} ${many}`);
+  return (
+    <section aria-labelledby="inventario" className="rounded-3xl border border-[#eadcc4] bg-papel p-4 sm:p-6">
+      <h2 id="inventario" className="mb-1 font-serif text-xl font-bold">
+        Inventario
+      </h2>
+      <p className="text-tinta-suave">
+        {n(inv.products, "juego", "juegos")} · {n(inv.units, "unidad", "unidades")}
+      </p>
+      <dl className="mt-3 grid gap-2">
+        <div className="flex justify-between gap-3">
+          <dt>Valor a costo</dt>
+          <dd className="font-semibold tabular-nums">{formatBs(inv.costValueCents)}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt>Valor a precio de venta</dt>
+          <dd className="font-semibold tabular-nums">{formatBs(inv.saleValueCents)}</dd>
+        </div>
+        <div className="flex justify-between gap-3 border-t border-[#eadcc4] pt-2">
+          <dt className="font-semibold">Si vendes todo, ganarías</dt>
+          <dd className="font-serif text-xl font-extrabold tabular-nums text-verde">{formatBs(inv.potentialProfitCents)}</dd>
+        </div>
+      </dl>
+      {(inv.withoutCost.products > 0 || inv.withoutPrice.products > 0) && (
+        <p className="mt-1 text-sm text-muted-foreground">
+          Solo cuenta los juegos con costo y precio: faltan {inv.withoutCost.products} sin costo y {inv.withoutPrice.products} sin precio.
+        </p>
+      )}
+      <Missing
+        title={`${n(inv.withoutCost.products, "juego", "juegos")} sin costo anotado (${n(inv.withoutCost.units, "unidad", "unidades")})`}
+        items={inv.withoutCost.items}
+        total={inv.withoutCost.products}
+      />
+      <Missing title={`${n(inv.withoutPrice.products, "juego", "juegos")} sin precio`} items={inv.withoutPrice.items} total={inv.withoutPrice.products} />
+      {inv.samplesWithStock > 0 && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          No se cuentan {inv.samplesWithStock} juegos de ejemplo; puedes borrarlos en{" "}
+          <Link href="/panel/ajustes" className="text-verde underline-offset-4 hover:underline">
+            Ajustes
+          </Link>
+          .
+        </p>
+      )}
+    </section>
+  );
+}
+</file>
+
+<file path="src/features/admin/dashboard/PendingCards.tsx">
+import Link from "next/link";
+import { ChevronRightIcon, ClockAlertIcon } from "lucide-react";
+import { formatMoney } from "@/features/admin/purchases/money";
+import { cn } from "@/lib/utils";
+import type { DashboardNow } from "./queries";
+
+const card = "flex min-h-28 flex-col justify-between gap-2 rounded-3xl border border-[#eadcc4] bg-papel p-4 transition-colors hover:border-madera";
+const big = "font-serif text-3xl font-extrabold tabular-nums leading-none";
+
+function Card({ href, title, alert, children }: { href: string; title: string; alert?: boolean; children: React.ReactNode }) {
+  return (
+    <Link href={href} className={cn(card, alert && "border-rojo/40 bg-rojo/5")}>
+      <span className="flex items-center justify-between gap-2 font-semibold text-tinta-suave">
+        {title}
+        <ChevronRightIcon aria-hidden className="size-5 shrink-0" />
+      </span>
+      {children}
+    </Link>
+  );
+}
+
+/** Lo pendiente: siempre "ahora", no depende del período. */
+export function PendingCards({ now }: { now: DashboardNow }) {
+  const owes = now.debt.bobCents > 0 || now.debt.usdCents > 0;
+  return (
+    <section aria-labelledby="pendiente">
+      <h2 id="pendiente" className="mb-3 font-serif text-xl font-bold">
+        Pendiente
+      </h2>
+      <div className="grid grid-cols-2 gap-3">
+        <Card href="/panel/pedidos" title="Por revisar" alert={now.pendingReviewOver24h > 0}>
+          <span className={big}>{now.pendingReview}</span>
+          {now.pendingReviewOver24h > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-rojo">
+              <ClockAlertIcon aria-hidden className="size-4" />
+              {now.pendingReviewOver24h === 1 ? "1 lleva más de 24 h" : `${now.pendingReviewOver24h} llevan más de 24 h`}
+            </span>
+          )}
+        </Card>
+        <Card href="/panel/pedidos?tab=entregar" title="Por entregar">
+          <span className={big}>{now.toDeliver}</span>
+        </Card>
+        <Card href="/panel/compras" title="Compras por llegar">
+          <span className={big}>{now.purchasesToArrive}</span>
+        </Card>
+        <Card href="/panel/compras" title="Debes a proveedores" alert={owes}>
+          {owes ? (
+            <span className={cn("grid gap-1 font-serif text-xl font-extrabold tabular-nums leading-none text-rojo")}>
+              {now.debt.bobCents > 0 && <span>{formatMoney(now.debt.bobCents, "BOB")}</span>}
+              {now.debt.usdCents > 0 && <span>{formatMoney(now.debt.usdCents, "USD")}</span>}
+            </span>
+          ) : (
+            <span className={big}>Bs 0</span>
+          )}
+        </Card>
+      </div>
+    </section>
+  );
+}
+</file>
+
 <file path="src/features/admin/dashboard/PeriodTabs.tsx">
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -7540,6 +7324,122 @@ export function PeriodTabs({ current, hrefFor }: { current: Period | null; hrefF
         </Link>
       ))}
     </nav>
+  );
+}
+</file>
+
+<file path="src/features/admin/dashboard/ProfitBars.tsx">
+import Link from "next/link";
+import { formatBs } from "@/lib/money";
+import { cn } from "@/lib/utils";
+import { barAmount, barScale } from "./bars";
+import { barLabel } from "./period";
+import type { Bar } from "./queries";
+import { salesHref } from "./sales-filter";
+
+/** Barras de ganancia hechas a mano: cada una lleva a la lista de ventas de su día, semana o mes. */
+export function ProfitBars({ bars }: { bars: Bar[] }) {
+  const scale = barScale(bars.map((b) => b.profitCents));
+  const hasNegative = scale.some((s) => s.negative);
+  return (
+    <ol aria-label="Ganancia por período" className="mt-4 flex gap-1 sm:gap-2">
+      {bars.map((b, i) => {
+        const s = scale[i];
+        const current = i === bars.length - 1;
+        const label = barLabel(b.kind, b.from, b.idx);
+        return (
+          <li key={b.idx} className="min-w-0 flex-1">
+            <Link
+              href={salesHref({ from: b.from, to: b.to })}
+              aria-label={`${label}: ${formatBs(b.profitCents)} de ganancia${b.withoutCostCents > 0 ? ` y ${formatBs(b.withoutCostCents)} sin costo anotado` : ""}`}
+              className="group flex flex-col items-stretch rounded-lg px-0.5 pt-1 hover:bg-crema-2"
+            >
+              <span aria-hidden className="text-center text-[11px] leading-tight font-semibold tabular-nums text-tinta-suave break-words sm:text-xs">
+                {barAmount(b.profitCents)}
+              </span>
+              {/* Ventas sin costo anotado: no entran en la ganancia, pero hubo ventas. */}
+              <span aria-hidden className="h-3 text-center text-[10px] leading-3 font-bold text-madera">{b.withoutCostCents > 0 ? "+?" : ""}</span>
+              <span aria-hidden className="flex h-28 items-end">
+                {!s.negative && (
+                  <span
+                    className={cn("w-full rounded-t-md", current ? "bg-verde" : "bg-verde/35 group-hover:bg-verde/55")}
+                    style={{ height: `${Math.max(s.pct, b.profitCents > 0 ? 2 : 0)}%` }}
+                  />
+                )}
+              </span>
+              {hasNegative && (
+                <span aria-hidden className="flex h-8 items-start border-t border-tinta-suave/30">
+                  {s.negative && <span className="w-full rounded-b-md bg-rojo/70" style={{ height: `${Math.max(s.pct, 4)}%` }} />}
+                </span>
+              )}
+              <span aria-hidden className={cn("mt-1 text-center text-[11px] leading-tight break-words sm:text-xs", current ? "font-bold text-tinta" : "text-muted-foreground")}>
+                {label}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+</file>
+
+<file path="src/features/admin/dashboard/ProfitHero.tsx">
+import Link from "next/link";
+import { formatBs } from "@/lib/money";
+import { cn } from "@/lib/utils";
+import { compareLine } from "./compare";
+import { previousLabel, profitTitle, type Period } from "./period";
+import { ProfitBars } from "./ProfitBars";
+import type { DashboardSales } from "./queries";
+import { CHANNELS, salesHref } from "./sales-filter";
+
+const plural = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`);
+const TONE = { up: "text-verde", down: "text-rojo", same: "text-tinta-suave", neutral: "text-muted-foreground" } as const;
+const link = "font-semibold text-verde underline-offset-4 hover:underline";
+
+/** Arriba de la portada: cuánto ganó, comparado con el período anterior, con sus barras. */
+export function ProfitHero({ data, period }: { data: DashboardSales; period: Period }) {
+  const cur = data.current;
+  const cmp = compareLine(cur, data.previous, previousLabel(period, data.range));
+  return (
+    <section aria-label="Ganancia" className="rounded-3xl border border-[#eadcc4] bg-papel p-4 sm:p-6">
+      <Link href={salesHref({ period })} className="group block">
+        <span className="block font-semibold text-tinta-suave">{profitTitle(period, data.range)}</span>
+        <span className={cn("block font-serif text-5xl font-extrabold tabular-nums leading-tight group-hover:underline", cur.profitCents < 0 && "text-rojo")}>
+          {formatBs(cur.profitCents)}
+        </span>
+      </Link>
+      <p className={cn("mt-1 font-semibold", TONE[cmp.tone])}>{cmp.text}</p>
+
+      <ProfitBars bars={data.bars} />
+
+      <p className="mt-4">
+        <Link href={salesHref({ period })} className={link}>
+          Vendiste {formatBs(cur.salesCents)} ({plural(cur.count, "venta", "ventas")}, {plural(cur.units, "juego", "juegos")})
+        </Link>{" "}
+        ·{" "}
+        <Link href={salesHref({ period })} className={link}>
+          te costaron {formatBs(cur.costCents)}
+        </Link>
+      </p>
+      <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+        {CHANNELS.map((c) => (
+          <Link key={c.value} href={salesHref({ period, channel: c.value })} className="underline-offset-4 hover:underline">
+            {c.label} <span className="font-semibold tabular-nums">{formatBs(data.byChannel[c.value])}</span>
+          </Link>
+        ))}
+        <span className="text-muted-foreground">Envíos cobrados: {formatBs(cur.shippingCents)}</span>
+      </p>
+      {cur.withoutCostCents > 0 && (
+        <p className="mt-3 rounded-xl bg-madera/10 px-3 py-2 text-sm">
+          <Link href={salesHref({ period, withoutCost: true })} className="font-semibold underline-offset-4 hover:underline">
+            {formatBs(cur.withoutCostCents)} en ventas sin costo anotado
+          </Link>
+          : no entran en la ganancia{data.bars.some((b) => b.withoutCostCents > 0) && " (en las barras, marcadas con +?)"}
+        </p>
+      )}
+    </section>
   );
 }
 </file>
@@ -7646,6 +7546,70 @@ export async function getSalesList(f: SalesFilter): Promise<SalesList> {
   });
   if (error) throw error;
   return data as unknown as SalesList;
+}
+</file>
+
+<file path="src/features/admin/dashboard/RestockSection.tsx">
+import Link from "next/link";
+import { MessageCircleIcon } from "lucide-react";
+import { reorderMessage } from "@/features/admin/purchases/reorder";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
+import type { DashboardNow, DashboardSales } from "./queries";
+import { TopProducts } from "./TopProducts";
+
+const more = "inline-flex min-h-11 items-center font-semibold text-verde underline-offset-4 hover:underline";
+
+/** Qué volver a comprar: lo más vendido del período y lo que se está agotando (ahora). */
+export function RestockSection({ top, low }: { top: DashboardSales["top"]; low: DashboardNow["runningLow"] }) {
+  return (
+    <section aria-labelledby="volver-a-comprar" className="rounded-3xl border border-[#eadcc4] bg-papel p-4 sm:p-6">
+      <h2 id="volver-a-comprar" className="mb-3 font-serif text-xl font-bold">
+        Qué volver a comprar
+      </h2>
+      <TopProducts top={top} />
+
+      <h3 className="mt-5 mb-2 font-semibold">Se está agotando</h3>
+      {low.items.length === 0 ? (
+        <p className="text-muted-foreground">Nada se está agotando.</p>
+      ) : (
+        <ul aria-label="Se está agotando" className="grid grid-cols-[minmax(0,1fr)] gap-2">
+          {low.items.map((p) => (
+            <li key={p.productId} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-background/50 px-3 py-2">
+              <Link href={`/panel/productos/${p.productId}`} className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">{p.name}</span>
+                <span className="block text-sm text-muted-foreground">
+                  {p.stock === 0 ? <span className="font-semibold text-rojo">Agotado</span> : `Quedan ${p.stock}`}
+                  {p.sold30d > 0 && ` · ${p.sold30d === 1 ? "1 vendido" : `${p.sold30d} vendidos`} en 30 días`}
+                </span>
+              </Link>
+              {p.reorder?.whatsapp && (
+                <a
+                  href={buildWhatsAppLink(
+                    p.reorder.whatsapp,
+                    reorderMessage({ supplierContact: p.reorder.contactName, supplierName: p.reorder.supplierName, productName: p.name, quantity: p.reorder.quantity }),
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border-2 border-verde px-3 text-sm font-semibold text-verde hover:bg-verde/10"
+                >
+                  <MessageCircleIcon aria-hidden className="size-4" />
+                  Pedir de nuevo
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-2 flex flex-wrap gap-x-4">
+        <Link href="/panel/productos?filtro=poco-stock" className={more}>
+          Ver poco stock ({low.lowStockCount})
+        </Link>
+        <Link href="/panel/productos?filtro=agotados" className={more}>
+          Ver agotados ({low.outOfStockCount})
+        </Link>
+      </p>
+    </section>
+  );
 }
 </file>
 
@@ -7840,6 +7804,73 @@ export function SalesTable({ list }: { list: SalesList }) {
         </p>
       )}
     </>
+  );
+}
+</file>
+
+<file path="src/features/admin/dashboard/TopProducts.tsx">
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { formatBs } from "@/lib/money";
+import { cn } from "@/lib/utils";
+import type { TopProduct } from "./queries";
+
+const ORDERS = [
+  { value: "units", label: "Unidades" },
+  { value: "revenue", label: "Ingresos" },
+] as const;
+
+/** Lo más vendido del período, por unidades o por ingresos (la base ya trae los 20 primeros). */
+export function TopProducts({ top }: { top: TopProduct[] }) {
+  const [order, setOrder] = useState<"units" | "revenue">("units");
+  const rows = [...top]
+    .sort((a, b) => (order === "units" ? b.units - a.units || b.revenueCents - a.revenueCents : b.revenueCents - a.revenueCents || b.units - a.units))
+    .slice(0, 10);
+  return (
+    <div>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold">Lo más vendido</h3>
+        <div role="group" aria-label="Ordenar por" className="flex gap-1 rounded-full bg-crema-2 p-1">
+          {ORDERS.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              aria-pressed={order === o.value}
+              onClick={() => setOrder(o.value)}
+              className={cn("min-h-9 rounded-full px-3 text-sm font-semibold", order === o.value ? "bg-verde text-crema" : "text-tinta-suave")}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {rows.length === 0 ? (
+        <p className="text-muted-foreground">Todavía no hay ventas en este período.</p>
+      ) : (
+        <ol aria-label="Lo más vendido" className="grid grid-cols-[minmax(0,1fr)] gap-2">
+          {rows.map((p) => (
+            <li key={p.productId}>
+              <Link href={`/panel/productos/${p.productId}`} className="flex items-center justify-between gap-3 rounded-xl bg-background/50 px-3 py-2 hover:bg-crema-2">
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{p.name}</span>
+                  <span className="block text-sm text-muted-foreground">
+                    {p.units === 1 ? "1 vendido" : `${p.units} vendidos`} · quedan {p.stock}
+                  </span>
+                </span>
+                <span className="shrink-0 text-right text-sm tabular-nums">
+                  <span className="block font-semibold">{formatBs(p.revenueCents)}</span>
+                  <span className="block text-muted-foreground">
+                    {p.unitsWithoutCost === p.units ? "sin costo" : `gana ${formatBs(p.profitCents)}`}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
   );
 }
 </file>
@@ -17943,127 +17974,6 @@ select * from finish();
 rollback;
 </file>
 
-<file path="supabase/tests/dashboard_ahora.test.sql">
--- Pendientes, se está agotando e inventario valorizado (plan 5, tarea 3).
-begin;
-create extension if not exists pgtap with schema extensions;
-select no_plan();
-
-delete from public.orders;
-delete from public.manual_sales;
-delete from public.purchase_payments;
-delete from public.purchases;
-insert into auth.users (id, email) values
-  ('00000000-0000-0000-0000-0000000000ad', 'admin@test.bo'),
-  ('00000000-0000-0000-0000-0000000000c1', 'cliente@test.bo');
-update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000000ad';
-insert into public.categories (id, name, slug) values ('00000000-0000-0000-0000-0000000000ca', 'Test', 't-cat');
--- Todo lo que ya existe (semilla o restos de e2e) cuenta como ejemplo: el inventario parte de cero.
-update public.products set is_sample = true;
--- P1 visible con costo; P2 visible sin costo; P3 oculto sin precio (costo de compra); P4 visible con compra; P5 agotado.
-insert into public.products (id, name, slug, category_id, price_cents, stock, is_active) values
-  ('00000000-0000-0000-0000-0000000000d1', 'Juego P1', 't-p1', '00000000-0000-0000-0000-0000000000ca', 5000, 5, true),
-  ('00000000-0000-0000-0000-0000000000d2', 'Juego P2', 't-p2', '00000000-0000-0000-0000-0000000000ca', 4000, 2, true),
-  ('00000000-0000-0000-0000-0000000000d3', 'Juego P3', 't-p3', '00000000-0000-0000-0000-0000000000ca', 0, 0, false),
-  ('00000000-0000-0000-0000-0000000000d4', 'Juego P4', 't-p4', '00000000-0000-0000-0000-0000000000ca', 3000, 0, true),
-  ('00000000-0000-0000-0000-0000000000d5', 'Juego P5', 't-p5', '00000000-0000-0000-0000-0000000000ca', 3000, 0, true);
-insert into public.product_costs (product_id, initial_cost_cents) values ('00000000-0000-0000-0000-0000000000d1', 3000);
-insert into public.suppliers (id, name, contact_name, whatsapp) values
-  ('00000000-0000-0000-0000-0000000005b1', 'Proveedor Uno', 'Don Luis', '71111111');
-
-create function pg_temp.as_user(u text) returns void language plpgsql as $$
-begin
-  perform set_config('role', 'authenticated', true);
-  perform set_config('request.jwt.claims', json_build_object('sub', u, 'role', 'authenticated')::text, true);
-end $$;
-create function pg_temp.as_postgres() returns void language plpgsql as $$
-begin
-  perform set_config('role', 'postgres', true);
-  perform set_config('request.jwt.claims', '', true);
-end $$;
-create function pg_temp.pedido(product text, st text) returns uuid language plpgsql as $$
-declare v uuid;
-begin
-  perform pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
-  select order_id into v from public.create_order(gen_random_uuid(),
-    jsonb_build_array(jsonb_build_object('product_id', product, 'quantity', 1)),
-    '{"method":"recojo","recipient_name":"Ana","phone":"71234567"}', '{"requested":false}');
-  perform pg_temp.as_postgres();
-  if st <> 'esperando_pago' then
-    update public.orders set status = 'en_revision' where id = v;
-    if st <> 'en_revision' then update public.orders set status = st::public.order_status where id = v; end if;
-  end if;
-  return v;
-end $$;
-create function pg_temp.compra(product text, currency text, price int) returns uuid language sql as $$
-  select public.admin_create_purchase(gen_random_uuid(), '00000000-0000-0000-0000-0000000005b1', current_date, currency, null,
-    jsonb_build_array(jsonb_build_object('product_id', product, 'quantity', 1, 'unit_price_cents', price)))
-$$;
-create function pg_temp.now_() returns jsonb language sql as $$ select public.admin_dashboard_now() $$;
-
--- Pedidos: uno pagado aparta 1 de P1; uno en revisión de un juego de ejemplo (UNO) --------------------------
-select pg_temp.pedido('00000000-0000-0000-0000-0000000000d1', 'pagado');
-select pg_temp.pedido((select id::text from public.products where slug = 'uno'), 'en_revision');
--- Los juegos de ejemplo no se muestran, así no compiten en "se está agotando".
-update public.products set is_active = false where is_sample;
--- P2: 3 vendidas hace 5 días
-insert into public.manual_sales (product_id, quantity, unit_price_cents, channel, created_by, created_at)
-values ('00000000-0000-0000-0000-0000000000d2', 3, 4000, 'tienda', '00000000-0000-0000-0000-0000000000ad', now() - interval '5 days');
-
--- Compras: P3 y P4 recibidas (BOB, sin pagar); una en dólares encargada; una anulada -----------------------
-select pg_temp.as_user('00000000-0000-0000-0000-0000000000ad');
-select public.admin_receive_purchase(pg_temp.compra('00000000-0000-0000-0000-0000000000d3', 'BOB', 2500), '[]', 0, null);
-select public.admin_receive_purchase(pg_temp.compra('00000000-0000-0000-0000-0000000000d4', 'BOB', 1000), '[]', 0, null);
-select pg_temp.compra('00000000-0000-0000-0000-0000000000d5', 'USD', 1500);
-select public.admin_void_purchase(pg_temp.compra('00000000-0000-0000-0000-0000000000d5', 'BOB', 9999));
-
--- Inventario ------------------------------------------------------------------------------------------------
-select is((pg_temp.now_() -> 'inventory' ->> 'products')::int, 4, 'P1, P2, P3 y P4 tienen unidades (P5 no)');
-select is((pg_temp.now_() -> 'inventory' ->> 'units')::int, 9, 'P1: 4 + 1 apartada; P2: 2; P3: 1; P4: 1');
-select is((pg_temp.now_() -> 'inventory' ->> 'costValueCents')::bigint, 18500::bigint, 'a costo: 5 × 3000 + 2500 + 1000');
-select is((pg_temp.now_() -> 'inventory' ->> 'saleValueCents')::bigint, 36000::bigint, 'a precio: 5 × 5000 + 2 × 4000 + 3000');
-select is((pg_temp.now_() -> 'inventory' ->> 'potentialProfitCents')::bigint, 12000::bigint, 'si vende todo: 5 × 2000 + 2000');
-select is(pg_temp.now_() -> 'inventory' -> 'withoutCost',
-  '{"products": 1, "units": 2, "items": [{"productId": "00000000-0000-0000-0000-0000000000d2", "name": "Juego P2"}]}'::jsonb, 'P2 sin costo');
-select is(pg_temp.now_() -> 'inventory' -> 'withoutPrice',
-  '{"products": 1, "items": [{"productId": "00000000-0000-0000-0000-0000000000d3", "name": "Juego P3"}]}'::jsonb, 'P3 sin precio');
-select pg_temp.as_postgres();
-select set_config('t.samples', (select count(*) from public.products p where p.is_sample and p.stock + public.reserved_units_of(p.id) > 0)::text, true);
-select pg_temp.as_user('00000000-0000-0000-0000-0000000000ad');
-select is((pg_temp.now_() -> 'inventory' ->> 'samplesWithStock')::int, current_setting('t.samples')::int,
-  'los juegos de ejemplo con stock se cuentan aparte');
-select ok(current_setting('t.samples')::int > 0, 'hay juegos de ejemplo con stock (semilla)');
-select is((pg_temp.now_() -> 'inventory' ->> 'costValueCents')::bigint - 2500 - 1000,
-  5 * (public.admin_product_cost_summary('00000000-0000-0000-0000-0000000000d1') ->> 'currentUnitCostCents')::bigint,
-  'el valor a costo de P1 usa el costo vigente de su ficha');
-
--- Se está agotando ------------------------------------------------------------------------------------------
-select is((select array_agg(i ->> 'name' order by n) from jsonb_array_elements(pg_temp.now_() -> 'runningLow' -> 'items') with ordinality x(i, n)),
-  array['Juego P2', 'Juego P5', 'Juego P4'], 'primero lo que más se vende, luego el menor stock; P3 oculto no está');
-select is((pg_temp.now_() -> 'runningLow' -> 'items' -> 0 ->> 'sold30d')::int, 3, 'P2: 3 vendidas en 30 días');
-select is(pg_temp.now_() -> 'runningLow' -> 'items' -> 0 -> 'reorder', 'null'::jsonb, 'P2 nunca se compró');
-select is(pg_temp.now_() -> 'runningLow' -> 'items' -> 2 -> 'reorder',
-  '{"supplierName": "Proveedor Uno", "contactName": "Don Luis", "whatsapp": "71111111", "quantity": 1}'::jsonb,
-  'P4: pedir de nuevo al último proveedor');
-select is((pg_temp.now_() -> 'runningLow' ->> 'lowStockCount')::int, 2, 'visibles con 1 a 3: P2 y P4');
-select is((pg_temp.now_() -> 'runningLow' ->> 'outOfStockCount')::int, 1, 'visibles agotados: P5');
-
--- Pendientes ------------------------------------------------------------------------------------------------
-select is(pg_temp.now_() -> 'debt', '{"bobCents": 3500, "usdCents": 1500}'::jsonb, 'deuda por moneda; la anulada no suma');
-select is((pg_temp.now_() ->> 'purchasesToArrive')::int, 1, 'una compra por llegar');
-select is((pg_temp.now_() ->> 'pendingReview')::int, (public.admin_dashboard_summary() ->> 'pendingReview')::int, 'por revisar = portada A');
-select is((pg_temp.now_() ->> 'pendingReview')::int, 1, 'un pedido por revisar');
-select is((pg_temp.now_() ->> 'toDeliver')::int, (public.admin_dashboard_summary() ->> 'toDeliver')::int, 'por entregar = portada A');
-select is((pg_temp.now_() ->> 'pendingReviewOver24h')::int, 0, 'ninguno lleva más de 24 h');
-
--- Seguridad -------------------------------------------------------------------------------------------------
-select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
-select throws_ok($$ select public.admin_dashboard_now() $$, '42501', null, 'un cliente no ve el resumen');
-
-select * from finish();
-rollback;
-</file>
-
 <file path="supabase/tests/dashboard_ventas.test.sql">
 -- Una sola definición de venta y la lista de ventas (plan 5, tarea 1).
 begin;
@@ -19610,168 +19520,6 @@ test("las listas del panel no se salen de la pantalla del celular", async ({ pag
 });
 </file>
 
-<file path="e2e/portada-panel.spec.ts">
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/admin";
-import { adminClient, createOrderFor, createProduct, createRawPurchase, createSupplier, createTestUser, setOrderStatus } from "./helpers/supabase-admin";
-
-// Los números suman toda la tienda: estas pruebas comparten la base y corren en orden.
-test.describe.configure({ mode: "serial" });
-
-// Los números suman toda la tienda: corre sola, al final (proyecto "portada" en playwright.config).
-test("el panel se instala como app", async ({ request }) => {
-  const manifest = await (await request.get("/panel.webmanifest")).json();
-  expect(manifest).toMatchObject({ start_url: "/panel", scope: "/panel", display: "standalone", short_name: "Panel" });
-  for (const icon of manifest.icons) expect((await request.get(icon.src)).status()).toBe(200);
-  expect(manifest.icons.map((i: { sizes: string }) => i.sizes)).toEqual(["192x192", "512x512"]);
-});
-
-/** Ventas de hoy: dos manuales de un juego con costo (3000) y un pedido web de un juego sin costo. */
-async function sellToday(ownerId: string) {
-  const admin = adminClient();
-  await admin.from("orders").delete().not("id", "is", null);
-  await admin.from("manual_sales").delete().not("id", "is", null);
-  const withCost = await createProduct({ name: `Con costo ${crypto.randomUUID().slice(0, 4)}`, priceCents: 5000, stock: 10 });
-  const noCost = await createProduct({ name: `Sin costo ${crypto.randomUUID().slice(0, 4)}`, priceCents: 2000, stock: 10 });
-  const { error: ce } = await admin.from("product_costs").insert({ product_id: withCost.id, initial_cost_cents: 3000 });
-  if (ce) throw ce;
-  const { error } = await admin.from("manual_sales").insert([
-    { product_id: withCost.id, quantity: 1, unit_price_cents: 5000, channel: "tienda", created_by: ownerId },
-    { product_id: withCost.id, quantity: 1, unit_price_cents: 4500, channel: "whatsapp", created_by: ownerId },
-  ]);
-  if (error) throw error;
-  const customer = await createTestUser("Rosa Mamani");
-  const order = await createOrderFor(customer.id, noCost.slug);
-  await setOrderStatus(order.id, "en_revision");
-  await setOrderStatus(order.id, "pagado");
-  return { withCost, noCost, order };
-}
-
-test("la lista de ventas cuadra con sus totales", async ({ page }) => {
-  const owner = await loginAsAdmin(page);
-  const { withCost, noCost, order } = await sellToday(owner.id);
-
-  await page.goto("/panel/mas");
-  await page.getByRole("link", { name: /Ventas/ }).click();
-  await expect(page).toHaveURL(/\/panel\/ventas$/);
-  await expect(page.getByRole("heading", { name: "Ventas", level: 1 })).toBeVisible();
-
-  await page.goto("/panel/ventas?periodo=hoy");
-  const totals = page.getByRole("region", { name: "Totales" });
-  await expect(totals).toContainText("Vendiste Bs 115");
-  await expect(totals).toContainText("3 ventas · 3 juegos");
-  await expect(totals).toContainText("Te costaron Bs 60");
-  await expect(totals).toContainText("Ganancia Bs 35");
-  await expect(totals).toContainText("Sin costo anotado Bs 20");
-  const list = page.getByRole("list", { name: "Ventas" });
-  await expect(list.getByRole("listitem")).toHaveCount(3);
-  await expect(list.getByRole("listitem").filter({ hasText: noCost.name })).toContainText("sin costo");
-  await expect(list.getByRole("listitem").filter({ hasText: "Tienda" })).toContainText(withCost.name);
-
-  await page.getByRole("link", { name: "Tienda", exact: true }).click();
-  await expect(page).toHaveURL(/canal=tienda/);
-  await expect(list.getByRole("listitem")).toHaveCount(1);
-  await expect(totals).toContainText("Vendiste Bs 50");
-
-  await page.getByRole("link", { name: "Todos", exact: true }).click();
-  await expect(page).not.toHaveURL(/canal=/);
-  await page.getByRole("link", { name: "Solo sin costo" }).click();
-  await expect(page).toHaveURL(/sincosto=1/);
-  await expect(list.getByRole("listitem")).toHaveCount(1);
-  await expect(totals).toContainText("Vendiste Bs 20");
-
-  await list.getByRole("link", { name: new RegExp(`Pedido #0*${order.number}$`) }).click();
-  await expect(page).toHaveURL(new RegExp(`/panel/pedidos/${order.id}`));
-});
-
-async function clearSalesAndPurchases() {
-  const admin = adminClient();
-  await admin.from("orders").delete().not("id", "is", null);
-  await admin.from("manual_sales").delete().not("id", "is", null);
-  await admin.from("purchase_payments").delete().not("id", "is", null);
-  await admin.from("purchases").delete().not("id", "is", null);
-}
-
-test("la portada muestra la ganancia y lleva a la lista que la forma", async ({ page }) => {
-  const owner = await loginAsAdmin(page);
-  await sellToday(owner.id);
-
-  await page.goto("/panel?periodo=hoy");
-  const profit = page.getByRole("region", { name: "Ganancia" });
-  await expect(profit).toContainText("Bs 35");
-  await expect(profit).toContainText("Bs 20 en ventas sin costo anotado");
-  await expect(profit).toContainText("Vendiste Bs 115 (3 ventas, 3 juegos)");
-
-  await profit.getByRole("link", { name: /^Ganaste hoy/ }).click();
-  await expect(page).toHaveURL(/\/panel\/ventas\?periodo=hoy$/);
-  await expect(page.getByRole("region", { name: "Totales" })).toContainText("Ganancia Bs 35");
-
-  await page.goto("/panel?periodo=hoy");
-  await profit.getByRole("link", { name: /de ganancia$/ }).last().click();
-  await expect(page).toHaveURL(/\/panel\/ventas\?desde=\d{4}-\d{2}-\d{2}&hasta=\d{4}-\d{2}-\d{2}$/);
-  await expect(page.getByRole("region", { name: "Totales" })).toContainText("Ganancia Bs 35");
-});
-
-test("la portada muestra lo pendiente y qué volver a comprar", async ({ page }) => {
-  const owner = await loginAsAdmin(page);
-  await clearSalesAndPurchases();
-  const admin = adminClient();
-  const customer = await createTestUser("Rosa Mamani");
-  await setOrderStatus((await createOrderFor(customer.id, "uno")).id, "en_revision");
-  const supplier = await createSupplier({ whatsapp: "71234567" });
-  const purchaseId = await createRawPurchase(supplier.id);
-  const cheap = await createProduct({ name: `Barato ${crypto.randomUUID().slice(0, 4)}`, priceCents: 1000, stock: 1 });
-  const pricey = await createProduct({ name: `Caro ${crypto.randomUUID().slice(0, 4)}`, priceCents: 20000, stock: 5 });
-  const { error: pe } = await admin.from("purchase_items").insert({ purchase_id: purchaseId, product_id: cheap.id, quantity_ordered: 1, unit_price_cents: 5000 });
-  if (pe) throw pe;
-  const { error } = await admin.from("manual_sales").insert([
-    { product_id: cheap.id, quantity: 3, unit_price_cents: 1000, channel: "tienda", created_by: owner.id },
-    { product_id: pricey.id, quantity: 1, unit_price_cents: 20000, channel: "tienda", created_by: owner.id },
-  ]);
-  if (error) throw error;
-
-  await page.goto("/panel");
-  const pending = page.getByRole("region", { name: "Pendiente" });
-  await expect(pending.getByRole("link", { name: /Por revisar/ })).toContainText("1");
-  await expect(pending.getByRole("link", { name: /Compras por llegar/ })).toContainText("1");
-  await expect(pending.getByRole("link", { name: /Debes a proveedores/ })).toContainText("Bs 50");
-
-  const restock = page.getByRole("region", { name: "Qué volver a comprar" });
-  await expect(restock.getByRole("list", { name: "Se está agotando" }).getByRole("listitem").first()).toContainText(cheap.name);
-  const top = restock.getByRole("list", { name: "Lo más vendido" }).getByRole("listitem");
-  await expect(top.first()).toContainText(cheap.name);
-  await restock.getByRole("button", { name: "Ingresos" }).click();
-  await expect(top.first()).toContainText(pricey.name);
-
-  await restock.getByRole("link", { name: /Ver poco stock/ }).click();
-  await expect(page).toHaveURL(/\/panel\/productos\?filtro=poco-stock$/);
-});
-
-test("sin ventas la portada no se rompe", async ({ page }) => {
-  await loginAsAdmin(page);
-  await clearSalesAndPurchases();
-  await page.goto("/panel?periodo=mes-anterior");
-  const profit = page.getByRole("region", { name: "Ganancia" });
-  await expect(profit).toContainText("Bs 0");
-  await expect(profit).toContainText("Sin ventas en");
-  await expect(page.getByRole("region", { name: "Inventario" })).toBeVisible();
-  await expect(page.locator('[style*="NaN"]')).toHaveCount(0);
-});
-
-test("en el celular no hay desborde y en la PC usa dos columnas", async ({ page }) => {
-  const owner = await loginAsAdmin(page);
-  await sellToday(owner.id);
-  await page.goto("/panel");
-  await expect(page.getByRole("region", { name: "Ganancia" })).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
-
-  await page.setViewportSize({ width: 1280, height: 800 });
-  const left = await page.getByRole("region", { name: "Ganancia" }).boundingBox();
-  const right = await page.getByRole("region", { name: "Inventario" }).boundingBox();
-  expect(left && right && right.x >= left.x + left.width).toBe(true);
-});
-</file>
-
 <file path="src/app/(tienda)/carrito/page.tsx">
 import type { Metadata } from "next";
 import { CartView } from "@/features/cart/CartView";
@@ -20170,6 +19918,62 @@ export default function PanelProductoPage(props: PageProps<"/panel/productos/[id
     <Suspense fallback={<div aria-hidden className="h-96 animate-pulse rounded-3xl bg-crema-2" />}>
       <ProductEditor {...props} />
     </Suspense>
+  );
+}
+</file>
+
+<file path="src/app/panel/page.tsx">
+import Link from "next/link";
+import { Suspense } from "react";
+import { PackagePlusIcon, StoreIcon } from "lucide-react";
+import { CustomersOrders } from "@/features/admin/dashboard/CustomersOrders";
+import { InventoryCard } from "@/features/admin/dashboard/InventoryCard";
+import { PendingCards } from "@/features/admin/dashboard/PendingCards";
+import { PeriodTabs } from "@/features/admin/dashboard/PeriodTabs";
+import { parsePeriod } from "@/features/admin/dashboard/period";
+import { ProfitHero } from "@/features/admin/dashboard/ProfitHero";
+import { getDashboardNow, getDashboardSales } from "@/features/admin/dashboard/queries";
+import { RestockSection } from "@/features/admin/dashboard/RestockSection";
+
+async function Dashboard({ searchParams }: { searchParams: PageProps<"/panel">["searchParams"] }) {
+  const period = parsePeriod((await searchParams).periodo);
+  const [sales, now] = await Promise.all([getDashboardSales(period), getDashboardNow()]);
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
+      <PeriodTabs current={period} hrefFor={(p) => `/panel?periodo=${p}`} />
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2 lg:items-start">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
+          <ProfitHero data={sales} period={period} />
+          <PendingCards now={now} />
+        </div>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
+          <RestockSection top={sales.top} low={now.runningLow} />
+          <InventoryCard inv={now.inventory} />
+          <CustomersOrders data={sales} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function PanelPage(props: PageProps<"/panel">) {
+  return (
+    <>
+      <h1 className="mb-5 text-3xl font-extrabold tracking-tight">Panel</h1>
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4">
+        <Link href="/panel/productos/nuevo" className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-verde px-3 text-center font-semibold text-crema hover:bg-verde-2">
+          <PackagePlusIcon aria-hidden className="size-5 shrink-0" />
+          Nuevo producto
+        </Link>
+        <Link href="/panel/productos?filtro=visibles" className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-verde px-3 text-center font-semibold text-verde hover:bg-verde/10">
+          <StoreIcon aria-hidden className="size-5 shrink-0" />
+          Vendí en tienda
+        </Link>
+      </div>
+      <Suspense fallback={<div aria-hidden className="h-96 animate-pulse rounded-3xl bg-crema-2" />}>
+        <Dashboard searchParams={props.searchParams} />
+      </Suspense>
+    </>
   );
 }
 </file>
@@ -20839,335 +20643,6 @@ export const productInputSchema = z
 
 export type ProductInput = z.input<typeof productInputSchema>;
 export type ProductValues = z.output<typeof productInputSchema>;
-</file>
-
-<file path="src/features/admin/queries.ts">
-import { fetchOrderDetail, UUID, type OrderDetail } from "@/features/orders/queries";
-import type { OrderStatus } from "@/features/orders/status";
-import { productImageUrl } from "@/lib/images";
-import { supabaseEnv } from "@/lib/supabase/env";
-import { createServerSupabase } from "@/lib/supabase/server";
-import type { DeliveryMethod } from "./transitions";
-
-// Consultas del panel. Todas usan la sesión del admin: RLS y las funciones admin_* deciden qué se ve.
-
-const DAY_MS = 24 * 3600_000;
-
-export type AdminTab = "revisar" | "entregar" | "historial";
-
-export type AdminOrderRow = {
-  id: string;
-  number: number;
-  status: OrderStatus;
-  createdAt: string;
-  statusChangedAt: string;
-  totalCents: number;
-  recipientName: string;
-  deliveryMethod: DeliveryMethod;
-  itemCount: number;
-  /** En revisión desde hace más de 24 horas. */
-  over24h: boolean;
-};
-
-function isOver24h(status: OrderStatus, statusChangedAt: string, now: number) {
-  return status === "en_revision" && now - new Date(statusChangedAt).getTime() > DAY_MS;
-}
-
-/** Pedidos de una pestaña del panel (historial: hasta 100, con búsqueda por código o nombre). */
-export async function listAdminOrders(tab: AdminTab, opts: { q?: string; status?: OrderStatus } = {}): Promise<AdminOrderRow[]> {
-  const supabase = await createServerSupabase();
-  let query = supabase
-    .from("orders")
-    .select("id, number, status, created_at, status_changed_at, total_cents, recipient_name, delivery_method, order_items(quantity)");
-
-  if (tab === "revisar") {
-    query = query.eq("status", "en_revision").order("status_changed_at", { ascending: true });
-  } else if (tab === "entregar") {
-    query = query.in("status", ["pagado", "enviado", "listo_para_recoger"]).order("status_changed_at", { ascending: true });
-  } else {
-    // Los que esperan el pago solo aparecen si se filtran a propósito (spec §5.3).
-    query = opts.status ? query.eq("status", opts.status) : query.neq("status", "esperando_pago");
-    const q = opts.q?.trim();
-    if (q) {
-      const number = /^#?(\d{1,9})$/.exec(q);
-      query = number ? query.eq("number", Number(number[1])) : query.ilike("recipient_name", `%${q.replace(/[%_\\]/g, "\\$&")}%`);
-    }
-    query = query.order("created_at", { ascending: false }).limit(100);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  const now = Date.now();
-  return data.map((o) => ({
-    id: o.id,
-    number: o.number,
-    status: o.status,
-    createdAt: o.created_at,
-    statusChangedAt: o.status_changed_at,
-    totalCents: o.total_cents,
-    recipientName: o.recipient_name,
-    deliveryMethod: o.delivery_method,
-    itemCount: o.order_items.reduce((sum, i) => sum + i.quantity, 0),
-    over24h: isOver24h(o.status, o.status_changed_at, now),
-  }));
-}
-
-export type AdminOrderDetail = OrderDetail & {
-  customer: { email: string; fullName: string | null; phone: string | null } | null;
-  over24h: boolean;
-};
-
-/** Detalle de cualquier pedido, con el contacto de quien compró. */
-export async function getAdminOrder(orderId: string): Promise<AdminOrderDetail | null> {
-  if (!UUID.test(orderId)) return null;
-  const supabase = await createServerSupabase();
-  const [order, contact] = await Promise.all([
-    fetchOrderDetail(supabase, orderId),
-    supabase.rpc("admin_customer_contact", { p_order_id: orderId }).maybeSingle(),
-  ]);
-  if (!order) return null;
-  const c = contact.data;
-  return {
-    ...order,
-    customer: c ? { email: c.email, fullName: c.full_name, phone: c.phone } : null,
-    over24h: isOver24h(order.status, order.statusChangedAt, Date.now()),
-  };
-}
-
-// Productos -------------------------------------------------------------------------------------------
-
-type Supabase = Awaited<ReturnType<typeof createServerSupabase>>;
-
-/** Unidades apartadas por pedidos web, por producto. */
-async function reservedByProduct(supabase: Supabase): Promise<Map<string, number>> {
-  const { data, error } = await supabase.rpc("admin_reserved_units");
-  if (error) throw error;
-  return new Map(data.map((r) => [r.product_id, r.quantity]));
-}
-
-export type ProductFilter = "todos" | "visibles" | "ocultos" | "agotados" | "poco-stock";
-
-export type AdminProductRow = {
-  id: string;
-  slug: string;
-  name: string;
-  categoryName: string;
-  priceCents: number;
-  stock: number;
-  reserved: number;
-  isActive: boolean;
-  imageUrl: string;
-};
-
-/** Productos del panel (visibles y ocultos), con buscador y filtros. */
-export async function listAdminProducts(opts: { q?: string; categoryId?: string; filter?: ProductFilter } = {}): Promise<AdminProductRow[]> {
-  const supabase = await createServerSupabase();
-  let query = supabase
-    .from("products")
-    .select("id, slug, name, price_cents, stock, is_active, categories(name), product_images(path, sort_order)")
-    .order("name");
-  const q = opts.q?.trim();
-  if (q) query = query.ilike("name", `%${q.replace(/[%_\\]/g, "\\$&")}%`);
-  if (opts.categoryId && UUID.test(opts.categoryId)) query = query.eq("category_id", opts.categoryId);
-  if (opts.filter === "visibles") query = query.eq("is_active", true);
-  if (opts.filter === "ocultos") query = query.eq("is_active", false);
-  if (opts.filter === "agotados") query = query.eq("stock", 0);
-  if (opts.filter === "poco-stock") query = query.eq("is_active", true).gte("stock", 1).lte("stock", 3);
-
-  const [{ data, error }, reserved] = await Promise.all([query, reservedByProduct(supabase)]);
-  if (error) throw error;
-  const { url } = supabaseEnv();
-  return data.map((p) => {
-    const main = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order)[0];
-    return {
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      categoryName: p.categories?.name ?? "",
-      priceCents: p.price_cents,
-      stock: p.stock,
-      reserved: reserved.get(p.id) ?? 0,
-      isActive: p.is_active,
-      imageUrl: productImageUrl(main?.path ?? null, url),
-    };
-  });
-}
-
-export type StockReason = "alta" | "venta_web" | "devolucion_web" | "venta_manual" | "anulacion_venta_manual" | "ajuste" | "compra" | "anulacion_compra";
-
-export type StockMovement = {
-  id: number;
-  delta: number;
-  reason: StockReason;
-  note: string | null;
-  createdAt: string;
-  /** Venta manual a la que corresponde (para anularla). */
-  sale: { id: string; channel: "tienda" | "whatsapp"; voided: boolean } | null;
-};
-
-export type AdminProductDetail = {
-  id: string;
-  slug: string;
-  name: string;
-  categoryId: string;
-  priceCents: number;
-  compareAtCents: number | null;
-  minAge: number | null;
-  minPlayers: number | null;
-  maxPlayers: number | null;
-  stock: number;
-  reserved: number;
-  description: string | null;
-  isNew: boolean;
-  isActive: boolean;
-  images: { id: string; path: string; url: string }[];
-  movements: StockMovement[];
-};
-
-/** Un producto para editarlo, con sus fotos, lo apartado y los últimos 50 movimientos de stock. */
-export async function getAdminProduct(productId: string): Promise<AdminProductDetail | null> {
-  if (!UUID.test(productId)) return null;
-  const supabase = await createServerSupabase();
-  const [{ data: p }, { data: moves }, reserved] = await Promise.all([
-    supabase.from("products").select("*, product_images(id, path, sort_order)").eq("id", productId).maybeSingle(),
-    supabase
-      .from("stock_movements")
-      .select("id, delta, reason, ref_id, note, created_at")
-      .eq("product_id", productId)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(50),
-    reservedByProduct(supabase),
-  ]);
-  if (!p) return null;
-
-  const saleIds = (moves ?? []).filter((m) => m.reason === "venta_manual" && m.ref_id).map((m) => m.ref_id as string);
-  const { data: sales } = saleIds.length
-    ? await supabase.from("manual_sales").select("id, channel, voided_at").in("id", saleIds)
-    : { data: [] };
-  const saleById = new Map((sales ?? []).map((s) => [s.id, s]));
-  const { url } = supabaseEnv();
-
-  return {
-    id: p.id,
-    slug: p.slug,
-    name: p.name,
-    categoryId: p.category_id,
-    priceCents: p.price_cents,
-    compareAtCents: p.compare_at_cents,
-    minAge: p.min_age,
-    minPlayers: p.min_players,
-    maxPlayers: p.max_players,
-    stock: p.stock,
-    reserved: reserved.get(p.id) ?? 0,
-    description: p.description,
-    isNew: p.is_new,
-    isActive: p.is_active,
-    images: [...p.product_images]
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((img) => ({ id: img.id, path: img.path, url: productImageUrl(img.path, url) })),
-    movements: (moves ?? []).map((m) => {
-      const sale = m.ref_id ? saleById.get(m.ref_id) : undefined;
-      return {
-        id: m.id,
-        delta: m.delta,
-        reason: m.reason as StockReason,
-        note: m.note,
-        createdAt: m.created_at,
-        sale: sale ? { id: sale.id, channel: sale.channel as "tienda" | "whatsapp", voided: sale.voided_at !== null } : null,
-      };
-    }),
-  };
-}
-
-// Ajustes ---------------------------------------------------------------------------------------------
-
-export type SettingsData = {
-  store: { storeName: string; tagline: string; whatsappPhone: string; address: string; pickupHours: string };
-  fees: { homeCents: number; meetingCents: number };
-  zones: { id: string; name: string; mode: "domicilio" | "punto"; sortOrder: number; isActive: boolean }[];
-  points: { id: string; name: string; reference: string | null; sortOrder: number; isActive: boolean }[];
-  wallets: { id: string; name: string; accountHolder: string | null; qrUrl: string; sortOrder: number; isActive: boolean }[];
-  categories: { id: string; name: string; sortOrder: number; productCount: number }[];
-  admins: { id: string; email: string; fullName: string | null }[];
-  sampleCount: number;
-  me: string;
-};
-
-/** Todo lo que se edita en Ajustes, incluso lo desactivado. */
-export async function getSettingsData(): Promise<SettingsData> {
-  const supabase = await createServerSupabase();
-  const [claims, settings, zones, points, wallets, categories, admins, samples] = await Promise.all([
-    supabase.auth.getClaims(),
-    supabase.from("store_settings").select("*").maybeSingle(),
-    supabase.from("delivery_zones").select("id, name, mode, sort_order, is_active").order("sort_order").order("name"),
-    supabase.from("meeting_points").select("id, name, reference, sort_order, is_active").order("sort_order").order("name"),
-    supabase.from("payment_methods").select("id, name, account_holder, qr_path, sort_order, is_active").order("sort_order"),
-    supabase.from("categories").select("id, name, sort_order, products(count)").order("sort_order").order("name"),
-    supabase.rpc("admin_list_admins"),
-    supabase.from("products").select("id", { count: "exact", head: true }).eq("is_sample", true),
-  ]);
-  for (const r of [settings, zones, points, wallets, categories, admins]) if (r.error) throw r.error;
-  const { url } = supabaseEnv();
-  const s = settings.data;
-  return {
-    store: {
-      storeName: s?.store_name ?? "",
-      tagline: s?.tagline ?? "",
-      whatsappPhone: s?.whatsapp_phone ?? "",
-      address: s?.address ?? "",
-      pickupHours: s?.pickup_hours ?? "",
-    },
-    fees: { homeCents: s?.delivery_fee_home_cents ?? 0, meetingCents: s?.delivery_fee_meeting_cents ?? 0 },
-    zones: (zones.data ?? []).map((z) => ({ id: z.id, name: z.name, mode: z.mode, sortOrder: z.sort_order, isActive: z.is_active })),
-    points: (points.data ?? []).map((p) => ({ id: p.id, name: p.name, reference: p.reference, sortOrder: p.sort_order, isActive: p.is_active })),
-    wallets: (wallets.data ?? []).map((w) => ({
-      id: w.id,
-      name: w.name,
-      accountHolder: w.account_holder,
-      qrUrl: w.qr_path.startsWith("/") ? w.qr_path : `${url}/storage/v1/object/public/store-assets/${w.qr_path}`,
-      sortOrder: w.sort_order,
-      isActive: w.is_active,
-    })),
-    categories: (categories.data ?? []).map((c) => ({
-      id: c.id,
-      name: c.name,
-      sortOrder: c.sort_order,
-      productCount: (c.products as unknown as { count: number }[])[0]?.count ?? 0,
-    })),
-    admins: (admins.data ?? []).map((a) => ({ id: a.id, email: a.email, fullName: a.full_name })),
-    sampleCount: samples.count ?? 0,
-    me: claims.data?.claims?.sub ?? "",
-  };
-}
-
-// Costo y ganancia de un producto -------------------------------------------------------------------------
-
-export type ProductCostSummary = {
-  currentUnitCostCents: number | null;
-  costOrigin: "compra" | "inicial" | null;
-  averageUnitCostCents: number | null;
-  initialCostCents: number | null;
-  lastPurchase: {
-    purchaseId: string;
-    supplierId: string;
-    supplierName: string;
-    supplierWhatsapp: string | null;
-    receivedAt: string;
-    quantity: number;
-    unitCostCents: number;
-  } | null;
-  purchases: { purchaseId: string; supplierName: string; receivedAt: string | null; status: string; quantity: number; unitCostCents: number | null }[];
-  sold: { units: number; unitsWithoutCost: number; revenueCents: number; profitCents: number };
-};
-
-export async function getProductCostSummary(productId: string): Promise<ProductCostSummary | null> {
-  if (!UUID.test(productId)) return null;
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.rpc("admin_product_cost_summary", { p_product_id: productId });
-  if (error) throw error;
-  return data as unknown as ProductCostSummary;
-}
 </file>
 
 <file path="src/features/admin/settings-actions.ts">
@@ -22677,6 +22152,138 @@ export const config = {
 };
 </file>
 
+<file path="supabase/tests/dashboard_ahora.test.sql">
+-- Pendientes, se está agotando e inventario valorizado (plan 5, tarea 3).
+begin;
+create extension if not exists pgtap with schema extensions;
+select no_plan();
+
+delete from public.orders;
+delete from public.manual_sales;
+delete from public.purchase_payments;
+delete from public.purchases;
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-0000000000ad', 'admin@test.bo'),
+  ('00000000-0000-0000-0000-0000000000c1', 'cliente@test.bo');
+update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000000ad';
+insert into public.categories (id, name, slug) values ('00000000-0000-0000-0000-0000000000ca', 'Test', 't-cat');
+-- Todo lo que ya existe (semilla o restos de e2e) cuenta como ejemplo: el inventario parte de cero.
+update public.products set is_sample = true;
+-- P1 visible con costo; P2 visible sin costo; P3 oculto sin precio (costo de compra); P4 visible con compra; P5 agotado.
+insert into public.products (id, name, slug, category_id, price_cents, stock, is_active) values
+  ('00000000-0000-0000-0000-0000000000d1', 'Juego P1', 't-p1', '00000000-0000-0000-0000-0000000000ca', 5000, 5, true),
+  ('00000000-0000-0000-0000-0000000000d2', 'Juego P2', 't-p2', '00000000-0000-0000-0000-0000000000ca', 4000, 2, true),
+  ('00000000-0000-0000-0000-0000000000d3', 'Juego P3', 't-p3', '00000000-0000-0000-0000-0000000000ca', 0, 0, false),
+  ('00000000-0000-0000-0000-0000000000d4', 'Juego P4', 't-p4', '00000000-0000-0000-0000-0000000000ca', 3000, 0, true),
+  ('00000000-0000-0000-0000-0000000000d5', 'Juego P5', 't-p5', '00000000-0000-0000-0000-0000000000ca', 3000, 0, true);
+insert into public.product_costs (product_id, initial_cost_cents) values ('00000000-0000-0000-0000-0000000000d1', 3000);
+insert into public.suppliers (id, name, contact_name, whatsapp) values
+  ('00000000-0000-0000-0000-0000000005b1', 'Proveedor Uno', 'Don Luis', '71111111');
+
+create function pg_temp.as_user(u text) returns void language plpgsql as $$
+begin
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u, 'role', 'authenticated')::text, true);
+end $$;
+create function pg_temp.as_postgres() returns void language plpgsql as $$
+begin
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+end $$;
+create function pg_temp.pedido(product text, st text) returns uuid language plpgsql as $$
+declare v uuid;
+begin
+  perform pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+  select order_id into v from public.create_order(gen_random_uuid(),
+    jsonb_build_array(jsonb_build_object('product_id', product, 'quantity', 1)),
+    '{"method":"recojo","recipient_name":"Ana","phone":"71234567"}', '{"requested":false}');
+  perform pg_temp.as_postgres();
+  if st <> 'esperando_pago' then
+    update public.orders set status = 'en_revision' where id = v;
+    if st <> 'en_revision' then update public.orders set status = st::public.order_status where id = v; end if;
+  end if;
+  return v;
+end $$;
+create function pg_temp.compra(product text, currency text, price int) returns uuid language sql as $$
+  select public.admin_create_purchase(gen_random_uuid(), '00000000-0000-0000-0000-0000000005b1', current_date, currency, null,
+    jsonb_build_array(jsonb_build_object('product_id', product, 'quantity', 1, 'unit_price_cents', price)))
+$$;
+create function pg_temp.now_() returns jsonb language sql as $$ select public.admin_dashboard_now() $$;
+
+-- Pedidos: uno pagado aparta 1 de P1; uno en revisión de un juego de ejemplo (UNO) --------------------------
+select pg_temp.pedido('00000000-0000-0000-0000-0000000000d1', 'pagado');
+select pg_temp.pedido((select id::text from public.products where slug = 'uno'), 'en_revision');
+-- Los juegos de ejemplo no se muestran, así no compiten en "se está agotando".
+update public.products set is_active = false where is_sample;
+-- P2: 3 vendidas hace 5 días
+insert into public.manual_sales (product_id, quantity, unit_price_cents, channel, created_by, created_at)
+values ('00000000-0000-0000-0000-0000000000d2', 3, 4000, 'tienda', '00000000-0000-0000-0000-0000000000ad', now() - interval '5 days');
+
+-- Compras: P3 y P4 recibidas (BOB, sin pagar); una en dólares encargada; una anulada -----------------------
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000ad');
+select public.admin_receive_purchase(pg_temp.compra('00000000-0000-0000-0000-0000000000d3', 'BOB', 2500), '[]', 0, null);
+select public.admin_receive_purchase(pg_temp.compra('00000000-0000-0000-0000-0000000000d4', 'BOB', 1000), '[]', 0, null);
+select pg_temp.compra('00000000-0000-0000-0000-0000000000d5', 'USD', 1500);
+select public.admin_void_purchase(pg_temp.compra('00000000-0000-0000-0000-0000000000d5', 'BOB', 9999));
+
+-- Inventario ------------------------------------------------------------------------------------------------
+select is((pg_temp.now_() -> 'inventory' ->> 'products')::int, 4, 'P1, P2, P3 y P4 tienen unidades (P5 no)');
+select is((pg_temp.now_() -> 'inventory' ->> 'units')::int, 9, 'P1: 4 + 1 apartada; P2: 2; P3: 1; P4: 1');
+select is((pg_temp.now_() -> 'inventory' ->> 'costValueCents')::bigint, 18500::bigint, 'a costo: 5 × 3000 + 2500 + 1000');
+select is((pg_temp.now_() -> 'inventory' ->> 'saleValueCents')::bigint, 36000::bigint, 'a precio: 5 × 5000 + 2 × 4000 + 3000');
+select is((pg_temp.now_() -> 'inventory' ->> 'potentialProfitCents')::bigint, 12000::bigint, 'si vende todo: 5 × 2000 + 2000');
+select is(pg_temp.now_() -> 'inventory' -> 'withoutCost',
+  '{"products": 1, "units": 2, "items": [{"productId": "00000000-0000-0000-0000-0000000000d2", "name": "Juego P2"}]}'::jsonb, 'P2 sin costo');
+select is(pg_temp.now_() -> 'inventory' -> 'withoutPrice',
+  '{"products": 1, "items": [{"productId": "00000000-0000-0000-0000-0000000000d3", "name": "Juego P3"}]}'::jsonb, 'P3 sin precio');
+select pg_temp.as_postgres();
+select set_config('t.samples', (select count(*) from public.products p where p.is_sample and p.stock + public.reserved_units_of(p.id) > 0)::text, true);
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000ad');
+select is((pg_temp.now_() -> 'inventory' ->> 'samplesWithStock')::int, current_setting('t.samples')::int,
+  'los juegos de ejemplo con stock se cuentan aparte');
+select ok(current_setting('t.samples')::int > 0, 'hay juegos de ejemplo con stock (semilla)');
+select is((pg_temp.now_() -> 'inventory' ->> 'costValueCents')::bigint - 2500 - 1000,
+  5 * (public.admin_product_cost_summary('00000000-0000-0000-0000-0000000000d1') ->> 'currentUnitCostCents')::bigint,
+  'el valor a costo de P1 usa el costo vigente de su ficha');
+
+-- Se está agotando ------------------------------------------------------------------------------------------
+select is((select array_agg(i ->> 'name' order by n) from jsonb_array_elements(pg_temp.now_() -> 'runningLow' -> 'items') with ordinality x(i, n)),
+  array['Juego P2', 'Juego P5', 'Juego P4'], 'primero lo que más se vende, luego el menor stock; P3 oculto no está');
+select is((pg_temp.now_() -> 'runningLow' -> 'items' -> 0 ->> 'sold30d')::int, 3, 'P2: 3 vendidas en 30 días');
+select is(pg_temp.now_() -> 'runningLow' -> 'items' -> 0 -> 'reorder', 'null'::jsonb, 'P2 nunca se compró');
+select is(pg_temp.now_() -> 'runningLow' -> 'items' -> 2 -> 'reorder',
+  '{"supplierName": "Proveedor Uno", "contactName": "Don Luis", "whatsapp": "71111111", "quantity": 1}'::jsonb,
+  'P4: pedir de nuevo al último proveedor');
+select is((pg_temp.now_() -> 'runningLow' ->> 'lowStockCount')::int, 2, 'visibles con 1 a 3: P2 y P4');
+-- Un juego de ejemplo visible con poco stock no se sugiere para volver a comprar.
+select pg_temp.as_postgres();
+update public.products set is_active = true, stock = 1 where slug = 'jenga';
+insert into public.products (name, slug, category_id, price_cents, stock, is_active)
+values ('Juego P6', 't-p6', '00000000-0000-0000-0000-0000000000ca', 0, 0, false);
+select set_config('t.agotados', (select count(*) from public.products where stock = 0)::text, true);
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000ad');
+select ok(not exists (select 1 from jsonb_array_elements(pg_temp.now_() -> 'runningLow' -> 'items') i where i ->> 'name' = 'Jenga'),
+  'los juegos de ejemplo no aparecen en se está agotando');
+select is((pg_temp.now_() -> 'runningLow' ->> 'outOfStockCount')::int, current_setting('t.agotados')::int,
+  'agotados cuenta lo mismo que el filtro de Productos (visibles u ocultos)');
+select ok(current_setting('t.agotados')::int > 1, 'hay agotados ocultos además de P5');
+
+-- Pendientes ------------------------------------------------------------------------------------------------
+select is(pg_temp.now_() -> 'debt', '{"bobCents": 3500, "usdCents": 1500}'::jsonb, 'deuda por moneda; la anulada no suma');
+select is((pg_temp.now_() ->> 'purchasesToArrive')::int, 1, 'una compra por llegar');
+select is((pg_temp.now_() ->> 'pendingReview')::int, (public.admin_dashboard_summary() ->> 'pendingReview')::int, 'por revisar = portada A');
+select is((pg_temp.now_() ->> 'pendingReview')::int, 1, 'un pedido por revisar');
+select is((pg_temp.now_() ->> 'toDeliver')::int, (public.admin_dashboard_summary() ->> 'toDeliver')::int, 'por entregar = portada A');
+select is((pg_temp.now_() ->> 'pendingReviewOver24h')::int, 0, 'ninguno lleva más de 24 h');
+
+-- Seguridad -------------------------------------------------------------------------------------------------
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+select throws_ok($$ select public.admin_dashboard_now() $$, '42501', null, 'un cliente no ve el resumen');
+
+select * from finish();
+rollback;
+</file>
+
 <file path="supabase/tests/seed.test.sql">
 -- Datos de prueba (supabase/seed.sql): la tienda y las pruebas e2e dependen de ellos.
 begin;
@@ -22929,6 +22536,174 @@ test.describe("pago con QR", () => {
     await expect(page.getByText("No encontramos ese pedido")).toBeVisible();
     await expect(page.getByText("Bs 35")).toHaveCount(0);
   });
+});
+</file>
+
+<file path="e2e/portada-panel.spec.ts">
+import { test, expect } from "@playwright/test";
+import { loginAsAdmin } from "./helpers/admin";
+import { adminClient, createOrderFor, createProduct, createRawPurchase, createSupplier, createTestUser, setOrderStatus } from "./helpers/supabase-admin";
+
+// Los números suman toda la tienda: estas pruebas comparten la base y corren en orden.
+test.describe.configure({ mode: "serial" });
+
+// Los números suman toda la tienda: corre sola, al final (proyecto "portada" en playwright.config).
+test("el panel se instala como app", async ({ request }) => {
+  const manifest = await (await request.get("/panel.webmanifest")).json();
+  expect(manifest).toMatchObject({ start_url: "/panel", scope: "/panel", display: "standalone", short_name: "Panel" });
+  for (const icon of manifest.icons) expect((await request.get(icon.src)).status()).toBe(200);
+  expect(manifest.icons.map((i: { sizes: string }) => i.sizes)).toEqual(["192x192", "512x512"]);
+});
+
+/** Ventas de hoy: dos manuales de un juego con costo (3000) y un pedido web de un juego sin costo. */
+async function sellToday(ownerId: string) {
+  const admin = adminClient();
+  await admin.from("orders").delete().not("id", "is", null);
+  await admin.from("manual_sales").delete().not("id", "is", null);
+  const withCost = await createProduct({ name: `Con costo ${crypto.randomUUID().slice(0, 4)}`, priceCents: 5000, stock: 10 });
+  const noCost = await createProduct({ name: `Sin costo ${crypto.randomUUID().slice(0, 4)}`, priceCents: 2000, stock: 10 });
+  const { error: ce } = await admin.from("product_costs").insert({ product_id: withCost.id, initial_cost_cents: 3000 });
+  if (ce) throw ce;
+  const { error } = await admin.from("manual_sales").insert([
+    { product_id: withCost.id, quantity: 1, unit_price_cents: 5000, channel: "tienda", created_by: ownerId },
+    { product_id: withCost.id, quantity: 1, unit_price_cents: 4500, channel: "whatsapp", created_by: ownerId },
+  ]);
+  if (error) throw error;
+  const customer = await createTestUser("Rosa Mamani");
+  const order = await createOrderFor(customer.id, noCost.slug);
+  await setOrderStatus(order.id, "en_revision");
+  await setOrderStatus(order.id, "pagado");
+  return { withCost, noCost, order };
+}
+
+test("la lista de ventas cuadra con sus totales", async ({ page }) => {
+  const owner = await loginAsAdmin(page);
+  const { withCost, noCost, order } = await sellToday(owner.id);
+
+  await page.goto("/panel/mas");
+  await page.getByRole("link", { name: /Ventas/ }).click();
+  await expect(page).toHaveURL(/\/panel\/ventas$/);
+  await expect(page.getByRole("heading", { name: "Ventas", level: 1 })).toBeVisible();
+
+  await page.goto("/panel/ventas?periodo=hoy");
+  const totals = page.getByRole("region", { name: "Totales" });
+  await expect(totals).toContainText("Vendiste Bs 115");
+  await expect(totals).toContainText("3 ventas · 3 juegos");
+  await expect(totals).toContainText("Te costaron Bs 60");
+  await expect(totals).toContainText("Ganancia Bs 35");
+  await expect(totals).toContainText("Sin costo anotado Bs 20");
+  const list = page.getByRole("list", { name: "Ventas" });
+  await expect(list.getByRole("listitem")).toHaveCount(3);
+  await expect(list.getByRole("listitem").filter({ hasText: noCost.name })).toContainText("sin costo");
+  await expect(list.getByRole("listitem").filter({ hasText: "Tienda" })).toContainText(withCost.name);
+
+  await page.getByRole("link", { name: "Tienda", exact: true }).click();
+  await expect(page).toHaveURL(/canal=tienda/);
+  await expect(list.getByRole("listitem")).toHaveCount(1);
+  await expect(totals).toContainText("Vendiste Bs 50");
+
+  await page.getByRole("link", { name: "Todos", exact: true }).click();
+  await expect(page).not.toHaveURL(/canal=/);
+  await page.getByRole("link", { name: "Solo sin costo" }).click();
+  await expect(page).toHaveURL(/sincosto=1/);
+  await expect(list.getByRole("listitem")).toHaveCount(1);
+  await expect(totals).toContainText("Vendiste Bs 20");
+
+  await list.getByRole("link", { name: new RegExp(`Pedido #0*${order.number}$`) }).click();
+  await expect(page).toHaveURL(new RegExp(`/panel/pedidos/${order.id}`));
+});
+
+async function clearSalesAndPurchases() {
+  const admin = adminClient();
+  await admin.from("orders").delete().not("id", "is", null);
+  await admin.from("manual_sales").delete().not("id", "is", null);
+  await admin.from("purchase_payments").delete().not("id", "is", null);
+  await admin.from("purchases").delete().not("id", "is", null);
+}
+
+test("la portada muestra la ganancia y lleva a la lista que la forma", async ({ page }) => {
+  const owner = await loginAsAdmin(page);
+  await sellToday(owner.id);
+
+  await page.goto("/panel?periodo=hoy");
+  const profit = page.getByRole("region", { name: "Ganancia" });
+  await expect(profit).toContainText("Bs 35");
+  await expect(profit).toContainText("Bs 20 en ventas sin costo anotado");
+  await expect(profit).toContainText("Vendiste Bs 115 (3 ventas, 3 juegos)");
+
+  await profit.getByRole("link", { name: /^Ganaste hoy/ }).click();
+  await expect(page).toHaveURL(/\/panel\/ventas\?periodo=hoy$/);
+  await expect(page.getByRole("region", { name: "Totales" })).toContainText("Ganancia Bs 35");
+
+  await page.goto("/panel?periodo=hoy");
+  await profit.getByRole("link", { name: "te costaron Bs 60" }).click();
+  await expect(page).toHaveURL(/\/panel\/ventas\?periodo=hoy$/);
+
+  await page.goto("/panel?periodo=hoy");
+  const today = profit.getByRole("link", { name: /de ganancia/ }).last();
+  await expect(today).toHaveAccessibleName(/Bs 35 de ganancia y Bs 20 sin costo anotado$/);
+  await today.click();
+  await expect(page).toHaveURL(/\/panel\/ventas\?desde=\d{4}-\d{2}-\d{2}&hasta=\d{4}-\d{2}-\d{2}$/);
+  await expect(page.getByRole("region", { name: "Totales" })).toContainText("Ganancia Bs 35");
+});
+
+test("la portada muestra lo pendiente y qué volver a comprar", async ({ page }) => {
+  const owner = await loginAsAdmin(page);
+  await clearSalesAndPurchases();
+  const admin = adminClient();
+  const customer = await createTestUser("Rosa Mamani");
+  await setOrderStatus((await createOrderFor(customer.id, "uno")).id, "en_revision");
+  const supplier = await createSupplier({ whatsapp: "71234567" });
+  const purchaseId = await createRawPurchase(supplier.id);
+  const cheap = await createProduct({ name: `Barato ${crypto.randomUUID().slice(0, 4)}`, priceCents: 1000, stock: 1 });
+  const pricey = await createProduct({ name: `Caro ${crypto.randomUUID().slice(0, 4)}`, priceCents: 20000, stock: 5 });
+  const { error: pe } = await admin.from("purchase_items").insert({ purchase_id: purchaseId, product_id: cheap.id, quantity_ordered: 1, unit_price_cents: 5000 });
+  if (pe) throw pe;
+  const { error } = await admin.from("manual_sales").insert([
+    { product_id: cheap.id, quantity: 3, unit_price_cents: 1000, channel: "tienda", created_by: owner.id },
+    { product_id: pricey.id, quantity: 1, unit_price_cents: 20000, channel: "tienda", created_by: owner.id },
+  ]);
+  if (error) throw error;
+
+  await page.goto("/panel");
+  const pending = page.getByRole("region", { name: "Pendiente" });
+  await expect(pending.getByRole("link", { name: /Por revisar/ })).toContainText("1");
+  await expect(pending.getByRole("link", { name: /Compras por llegar/ })).toContainText("1");
+  await expect(pending.getByRole("link", { name: /Debes a proveedores/ })).toContainText("Bs 50");
+
+  const restock = page.getByRole("region", { name: "Qué volver a comprar" });
+  await expect(restock.getByRole("list", { name: "Se está agotando" }).getByRole("listitem").first()).toContainText(cheap.name);
+  const top = restock.getByRole("list", { name: "Lo más vendido" }).getByRole("listitem");
+  await expect(top.first()).toContainText(cheap.name);
+  await restock.getByRole("button", { name: "Ingresos" }).click();
+  await expect(top.first()).toContainText(pricey.name);
+
+  await restock.getByRole("link", { name: /Ver poco stock/ }).click();
+  await expect(page).toHaveURL(/\/panel\/productos\?filtro=poco-stock$/);
+});
+
+test("sin ventas la portada no se rompe", async ({ page }) => {
+  await loginAsAdmin(page);
+  await clearSalesAndPurchases();
+  await page.goto("/panel?periodo=mes-anterior");
+  const profit = page.getByRole("region", { name: "Ganancia" });
+  await expect(profit).toContainText("Bs 0");
+  await expect(profit).toContainText("Sin ventas en");
+  await expect(page.getByRole("region", { name: "Inventario" })).toBeVisible();
+  await expect(page.locator('[style*="NaN"]')).toHaveCount(0);
+});
+
+test("en el celular no hay desborde y en la PC usa dos columnas", async ({ page }) => {
+  const owner = await loginAsAdmin(page);
+  await sellToday(owner.id);
+  await page.goto("/panel");
+  await expect(page.getByRole("region", { name: "Ganancia" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const left = await page.getByRole("region", { name: "Ganancia" }).boundingBox();
+  const right = await page.getByRole("region", { name: "Inventario" }).boundingBox();
+  expect(left && right && right.x >= left.x + left.width).toBe(true);
 });
 </file>
 
@@ -23551,6 +23326,335 @@ export async function setInitialCostAction(productId: string, costText: string):
   const { error } = await supabase.rpc("admin_set_initial_cost", { p_product_id: productId, p_cost_cents: (cents ?? null) as number });
   if (error) return { error: adminErrorMessage(error, "No pudimos guardar el costo. Vuelve a intentarlo.") };
   return { ok: true };
+}
+</file>
+
+<file path="src/features/admin/queries.ts">
+import { fetchOrderDetail, UUID, type OrderDetail } from "@/features/orders/queries";
+import type { OrderStatus } from "@/features/orders/status";
+import { productImageUrl } from "@/lib/images";
+import { supabaseEnv } from "@/lib/supabase/env";
+import { createServerSupabase } from "@/lib/supabase/server";
+import type { DeliveryMethod } from "./transitions";
+
+// Consultas del panel. Todas usan la sesión del admin: RLS y las funciones admin_* deciden qué se ve.
+
+const DAY_MS = 24 * 3600_000;
+
+export type AdminTab = "revisar" | "entregar" | "historial";
+
+export type AdminOrderRow = {
+  id: string;
+  number: number;
+  status: OrderStatus;
+  createdAt: string;
+  statusChangedAt: string;
+  totalCents: number;
+  recipientName: string;
+  deliveryMethod: DeliveryMethod;
+  itemCount: number;
+  /** En revisión desde hace más de 24 horas. */
+  over24h: boolean;
+};
+
+function isOver24h(status: OrderStatus, statusChangedAt: string, now: number) {
+  return status === "en_revision" && now - new Date(statusChangedAt).getTime() > DAY_MS;
+}
+
+/** Pedidos de una pestaña del panel (historial: hasta 100, con búsqueda por código o nombre). */
+export async function listAdminOrders(tab: AdminTab, opts: { q?: string; status?: OrderStatus } = {}): Promise<AdminOrderRow[]> {
+  const supabase = await createServerSupabase();
+  let query = supabase
+    .from("orders")
+    .select("id, number, status, created_at, status_changed_at, total_cents, recipient_name, delivery_method, order_items(quantity)");
+
+  if (tab === "revisar") {
+    query = query.eq("status", "en_revision").order("status_changed_at", { ascending: true });
+  } else if (tab === "entregar") {
+    query = query.in("status", ["pagado", "enviado", "listo_para_recoger"]).order("status_changed_at", { ascending: true });
+  } else {
+    // Los que esperan el pago solo aparecen si se filtran a propósito (spec §5.3).
+    query = opts.status ? query.eq("status", opts.status) : query.neq("status", "esperando_pago");
+    const q = opts.q?.trim();
+    if (q) {
+      const number = /^#?(\d{1,9})$/.exec(q);
+      query = number ? query.eq("number", Number(number[1])) : query.ilike("recipient_name", `%${q.replace(/[%_\\]/g, "\\$&")}%`);
+    }
+    query = query.order("created_at", { ascending: false }).limit(100);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  const now = Date.now();
+  return data.map((o) => ({
+    id: o.id,
+    number: o.number,
+    status: o.status,
+    createdAt: o.created_at,
+    statusChangedAt: o.status_changed_at,
+    totalCents: o.total_cents,
+    recipientName: o.recipient_name,
+    deliveryMethod: o.delivery_method,
+    itemCount: o.order_items.reduce((sum, i) => sum + i.quantity, 0),
+    over24h: isOver24h(o.status, o.status_changed_at, now),
+  }));
+}
+
+export type AdminOrderDetail = OrderDetail & {
+  customer: { email: string; fullName: string | null; phone: string | null } | null;
+  over24h: boolean;
+};
+
+/** Detalle de cualquier pedido, con el contacto de quien compró. */
+export async function getAdminOrder(orderId: string): Promise<AdminOrderDetail | null> {
+  if (!UUID.test(orderId)) return null;
+  const supabase = await createServerSupabase();
+  const [order, contact] = await Promise.all([
+    fetchOrderDetail(supabase, orderId),
+    supabase.rpc("admin_customer_contact", { p_order_id: orderId }).maybeSingle(),
+  ]);
+  if (!order) return null;
+  const c = contact.data;
+  return {
+    ...order,
+    customer: c ? { email: c.email, fullName: c.full_name, phone: c.phone } : null,
+    over24h: isOver24h(order.status, order.statusChangedAt, Date.now()),
+  };
+}
+
+// Productos -------------------------------------------------------------------------------------------
+
+type Supabase = Awaited<ReturnType<typeof createServerSupabase>>;
+
+/** Unidades apartadas por pedidos web, por producto. */
+async function reservedByProduct(supabase: Supabase): Promise<Map<string, number>> {
+  const { data, error } = await supabase.rpc("admin_reserved_units");
+  if (error) throw error;
+  return new Map(data.map((r) => [r.product_id, r.quantity]));
+}
+
+export type ProductFilter = "todos" | "visibles" | "ocultos" | "agotados" | "poco-stock";
+
+export type AdminProductRow = {
+  id: string;
+  slug: string;
+  name: string;
+  categoryName: string;
+  priceCents: number;
+  stock: number;
+  reserved: number;
+  isActive: boolean;
+  imageUrl: string;
+};
+
+/** Productos del panel (visibles y ocultos), con buscador y filtros. */
+export async function listAdminProducts(opts: { q?: string; categoryId?: string; filter?: ProductFilter } = {}): Promise<AdminProductRow[]> {
+  const supabase = await createServerSupabase();
+  let query = supabase
+    .from("products")
+    .select("id, slug, name, price_cents, stock, is_active, categories(name), product_images(path, sort_order)")
+    .order("name");
+  const q = opts.q?.trim();
+  if (q) query = query.ilike("name", `%${q.replace(/[%_\\]/g, "\\$&")}%`);
+  if (opts.categoryId && UUID.test(opts.categoryId)) query = query.eq("category_id", opts.categoryId);
+  if (opts.filter === "visibles") query = query.eq("is_active", true);
+  if (opts.filter === "ocultos") query = query.eq("is_active", false);
+  if (opts.filter === "agotados") query = query.eq("stock", 0);
+  if (opts.filter === "poco-stock") query = query.eq("is_active", true).gte("stock", 1).lte("stock", 3);
+
+  const [{ data, error }, reserved] = await Promise.all([query, reservedByProduct(supabase)]);
+  if (error) throw error;
+  const { url } = supabaseEnv();
+  return data.map((p) => {
+    const main = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order)[0];
+    return {
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      categoryName: p.categories?.name ?? "",
+      priceCents: p.price_cents,
+      stock: p.stock,
+      reserved: reserved.get(p.id) ?? 0,
+      isActive: p.is_active,
+      imageUrl: productImageUrl(main?.path ?? null, url),
+    };
+  });
+}
+
+export type StockReason = "alta" | "venta_web" | "devolucion_web" | "venta_manual" | "anulacion_venta_manual" | "ajuste" | "compra" | "anulacion_compra";
+
+export type StockMovement = {
+  id: number;
+  delta: number;
+  reason: StockReason;
+  note: string | null;
+  createdAt: string;
+  /** Venta manual a la que corresponde (para anularla). */
+  sale: { id: string; channel: "tienda" | "whatsapp"; voided: boolean } | null;
+};
+
+export type AdminProductDetail = {
+  id: string;
+  slug: string;
+  name: string;
+  categoryId: string;
+  priceCents: number;
+  compareAtCents: number | null;
+  minAge: number | null;
+  minPlayers: number | null;
+  maxPlayers: number | null;
+  stock: number;
+  reserved: number;
+  description: string | null;
+  isNew: boolean;
+  isActive: boolean;
+  images: { id: string; path: string; url: string }[];
+  movements: StockMovement[];
+};
+
+/** Un producto para editarlo, con sus fotos, lo apartado y los últimos 50 movimientos de stock. */
+export async function getAdminProduct(productId: string): Promise<AdminProductDetail | null> {
+  if (!UUID.test(productId)) return null;
+  const supabase = await createServerSupabase();
+  const [{ data: p }, { data: moves }, reserved] = await Promise.all([
+    supabase.from("products").select("*, product_images(id, path, sort_order)").eq("id", productId).maybeSingle(),
+    supabase
+      .from("stock_movements")
+      .select("id, delta, reason, ref_id, note, created_at")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(50),
+    reservedByProduct(supabase),
+  ]);
+  if (!p) return null;
+
+  const saleIds = (moves ?? []).filter((m) => m.reason === "venta_manual" && m.ref_id).map((m) => m.ref_id as string);
+  const { data: sales } = saleIds.length
+    ? await supabase.from("manual_sales").select("id, channel, voided_at").in("id", saleIds)
+    : { data: [] };
+  const saleById = new Map((sales ?? []).map((s) => [s.id, s]));
+  const { url } = supabaseEnv();
+
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    categoryId: p.category_id,
+    priceCents: p.price_cents,
+    compareAtCents: p.compare_at_cents,
+    minAge: p.min_age,
+    minPlayers: p.min_players,
+    maxPlayers: p.max_players,
+    stock: p.stock,
+    reserved: reserved.get(p.id) ?? 0,
+    description: p.description,
+    isNew: p.is_new,
+    isActive: p.is_active,
+    images: [...p.product_images]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((img) => ({ id: img.id, path: img.path, url: productImageUrl(img.path, url) })),
+    movements: (moves ?? []).map((m) => {
+      const sale = m.ref_id ? saleById.get(m.ref_id) : undefined;
+      return {
+        id: m.id,
+        delta: m.delta,
+        reason: m.reason as StockReason,
+        note: m.note,
+        createdAt: m.created_at,
+        sale: sale ? { id: sale.id, channel: sale.channel as "tienda" | "whatsapp", voided: sale.voided_at !== null } : null,
+      };
+    }),
+  };
+}
+
+// Ajustes ---------------------------------------------------------------------------------------------
+
+export type SettingsData = {
+  store: { storeName: string; tagline: string; whatsappPhone: string; address: string; pickupHours: string };
+  fees: { homeCents: number; meetingCents: number };
+  zones: { id: string; name: string; mode: "domicilio" | "punto"; sortOrder: number; isActive: boolean }[];
+  points: { id: string; name: string; reference: string | null; sortOrder: number; isActive: boolean }[];
+  wallets: { id: string; name: string; accountHolder: string | null; qrUrl: string; sortOrder: number; isActive: boolean }[];
+  categories: { id: string; name: string; sortOrder: number; productCount: number }[];
+  admins: { id: string; email: string; fullName: string | null }[];
+  sampleCount: number;
+  me: string;
+};
+
+/** Todo lo que se edita en Ajustes, incluso lo desactivado. */
+export async function getSettingsData(): Promise<SettingsData> {
+  const supabase = await createServerSupabase();
+  const [claims, settings, zones, points, wallets, categories, admins, samples] = await Promise.all([
+    supabase.auth.getClaims(),
+    supabase.from("store_settings").select("*").maybeSingle(),
+    supabase.from("delivery_zones").select("id, name, mode, sort_order, is_active").order("sort_order").order("name"),
+    supabase.from("meeting_points").select("id, name, reference, sort_order, is_active").order("sort_order").order("name"),
+    supabase.from("payment_methods").select("id, name, account_holder, qr_path, sort_order, is_active").order("sort_order"),
+    supabase.from("categories").select("id, name, sort_order, products(count)").order("sort_order").order("name"),
+    supabase.rpc("admin_list_admins"),
+    supabase.from("products").select("id", { count: "exact", head: true }).eq("is_sample", true),
+  ]);
+  for (const r of [settings, zones, points, wallets, categories, admins]) if (r.error) throw r.error;
+  const { url } = supabaseEnv();
+  const s = settings.data;
+  return {
+    store: {
+      storeName: s?.store_name ?? "",
+      tagline: s?.tagline ?? "",
+      whatsappPhone: s?.whatsapp_phone ?? "",
+      address: s?.address ?? "",
+      pickupHours: s?.pickup_hours ?? "",
+    },
+    fees: { homeCents: s?.delivery_fee_home_cents ?? 0, meetingCents: s?.delivery_fee_meeting_cents ?? 0 },
+    zones: (zones.data ?? []).map((z) => ({ id: z.id, name: z.name, mode: z.mode, sortOrder: z.sort_order, isActive: z.is_active })),
+    points: (points.data ?? []).map((p) => ({ id: p.id, name: p.name, reference: p.reference, sortOrder: p.sort_order, isActive: p.is_active })),
+    wallets: (wallets.data ?? []).map((w) => ({
+      id: w.id,
+      name: w.name,
+      accountHolder: w.account_holder,
+      qrUrl: w.qr_path.startsWith("/") ? w.qr_path : `${url}/storage/v1/object/public/store-assets/${w.qr_path}`,
+      sortOrder: w.sort_order,
+      isActive: w.is_active,
+    })),
+    categories: (categories.data ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      sortOrder: c.sort_order,
+      productCount: (c.products as unknown as { count: number }[])[0]?.count ?? 0,
+    })),
+    admins: (admins.data ?? []).map((a) => ({ id: a.id, email: a.email, fullName: a.full_name })),
+    sampleCount: samples.count ?? 0,
+    me: claims.data?.claims?.sub ?? "",
+  };
+}
+
+// Costo y ganancia de un producto -------------------------------------------------------------------------
+
+export type ProductCostSummary = {
+  currentUnitCostCents: number | null;
+  costOrigin: "compra" | "inicial" | null;
+  averageUnitCostCents: number | null;
+  initialCostCents: number | null;
+  lastPurchase: {
+    purchaseId: string;
+    supplierId: string;
+    supplierName: string;
+    supplierWhatsapp: string | null;
+    receivedAt: string;
+    quantity: number;
+    unitCostCents: number;
+  } | null;
+  purchases: { purchaseId: string; supplierName: string; receivedAt: string | null; status: string; quantity: number; unitCostCents: number | null }[];
+  sold: { units: number; unitsWithoutCost: number; revenueCents: number; profitCents: number };
+};
+
+export async function getProductCostSummary(productId: string): Promise<ProductCostSummary | null> {
+  if (!UUID.test(productId)) return null;
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.rpc("admin_product_cost_summary", { p_product_id: productId });
+  if (error) throw error;
+  return data as unknown as ProductCostSummary;
 }
 </file>
 
@@ -24624,7 +24728,7 @@ begin
     select p.id, p.name, p.stock, coalesce(s.units, 0) as sold30d
     from public.products p
     left join sold30 s on s.product_id = p.id
-    where p.is_active and p.stock between 0 and 3
+    where p.is_active and not p.is_sample and p.stock between 0 and 3
     order by sold30d desc, p.stock, p.name
     limit 10
   ),
@@ -24657,7 +24761,8 @@ begin
                               order by pu.received_at desc, i.id desc limit 1))
                   order by l.sold30d desc, l.stock, l.name) from low l), '[]'::jsonb),
       'lowStockCount', (select count(*) from public.products p where p.is_active and p.stock between 1 and 3),
-      'outOfStockCount', (select count(*) from public.products p where p.is_active and p.stock = 0)),
+      -- Igual que el filtro 'agotados' de Productos (visibles u ocultos), al que lleva el enlace.
+      'outOfStockCount', (select count(*) from public.products p where p.stock = 0)),
     'inventory', jsonb_build_object(
       'products', (select count(*) from inv),
       'units', (select coalesce(sum(units), 0) from inv),
@@ -26317,6 +26422,100 @@ Cómo funciona: cada cambio de estado de un pedido deja un aviso en `notificatio
 - **Ojo:** GitHub apaga los workflows programados si el repositorio pasa 60 días sin actividad; un commit o un *Run workflow* los reactiva.
 </file>
 
+<file path="playwright.config.ts">
+import { defineConfig, devices } from "@playwright/test";
+
+// PLAYWRIGHT_BASE_URL permite correr las pruebas contra una vista previa de Netlify.
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+
+const PANEL = /panel-.*\.spec\.ts/;
+const PORTADA = /portada-panel\.spec\.ts/;
+const desktop = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } };
+const mobile = { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } };
+
+export default defineConfig({
+  testDir: "./e2e",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? "github" : "list",
+  use: { baseURL, trace: "on-first-retry" },
+  // Las pruebas del panel crean productos y cambian stock: corren después de las de la tienda,
+  // que cuentan los productos del seed.
+  projects: [
+    { name: "desktop", testIgnore: [PANEL, PORTADA], use: desktop },
+    // Los avisos no dependen de la pantalla y la prueba de push usa un puerto fijo: solo en PC.
+    { name: "mobile", testIgnore: [PANEL, PORTADA, /avisos-correo\.spec\.ts/], use: mobile },
+    { name: "desktop-panel", testMatch: PANEL, dependencies: ["desktop", "mobile"], use: desktop },
+    // Ajustes cambia datos de toda la tienda: solo en un proyecto.
+    { name: "mobile-panel", testMatch: PANEL, testIgnore: /panel-ajustes\.spec\.ts/, dependencies: ["desktop", "mobile"], use: mobile },
+    // La portada suma toda la tienda: corre sola al final, con la base sin pedidos de otras pruebas.
+    { name: "portada", testMatch: PORTADA, dependencies: ["desktop-panel", "mobile-panel"], use: mobile },
+  ],
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : {
+        // Base local como el seed y build desde cero: el build pre-renderiza fichas con el stock
+        // y la caché de "use cache" en .next guardaría ids viejos tras un `supabase db reset`.
+        command: "node e2e/reset-db.mts && rm -rf .next && npm run build && npm run start",
+        url: baseURL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 180_000,
+      },
+});
+</file>
+
+<file path=".github/workflows/ci.yml">
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Lint, tipos y unitarias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  db:
+    name: Base de datos, integración, build y e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx supabase start
+      - run: npx supabase test db
+      - name: Variables de Supabase local
+        run: |
+          npx supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
+            | grep -E '^NEXT_PUBLIC_' | tr -d '"' >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000" >> "$GITHUB_ENV"
+          # Clave VAPID pública de prueba (la misma de supabase/functions/.env).
+          echo "NEXT_PUBLIC_VAPID_PUBLIC_KEY=$(grep '^VAPID_PUBLIC_KEY=' supabase/functions/.env | cut -d= -f2)" >> "$GITHUB_ENV"
+      - run: npm run test:int
+      # El build pre-renderiza páginas con datos del catálogo: necesita Supabase.
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+</file>
+
 <file path="docs/PROYECTO.md">
 # Ludiq — tienda online de juegos de mesa (La Paz, Bolivia)
 
@@ -26567,100 +26766,6 @@ Están en `.claude/skills/`; los créditos y licencias, en `.claude/skills/LICEN
 - **GitHub:** `Vega-Mtz-JD/web_jugueteria_venta`.
 - **Configuración en la nube** (SMTP, URLs, plantillas, Google): ver [hosting.md](hosting.md).
 - **Secretos:** nunca van en el repositorio. En Netlify solo están `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `NEXT_PUBLIC_SITE_URL`.
-</file>
-
-<file path="playwright.config.ts">
-import { defineConfig, devices } from "@playwright/test";
-
-// PLAYWRIGHT_BASE_URL permite correr las pruebas contra una vista previa de Netlify.
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
-
-const PANEL = /panel-.*\.spec\.ts/;
-const PORTADA = /portada-panel\.spec\.ts/;
-const desktop = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } };
-const mobile = { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } };
-
-export default defineConfig({
-  testDir: "./e2e",
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? "github" : "list",
-  use: { baseURL, trace: "on-first-retry" },
-  // Las pruebas del panel crean productos y cambian stock: corren después de las de la tienda,
-  // que cuentan los productos del seed.
-  projects: [
-    { name: "desktop", testIgnore: [PANEL, PORTADA], use: desktop },
-    // Los avisos no dependen de la pantalla y la prueba de push usa un puerto fijo: solo en PC.
-    { name: "mobile", testIgnore: [PANEL, PORTADA, /avisos-correo\.spec\.ts/], use: mobile },
-    { name: "desktop-panel", testMatch: PANEL, dependencies: ["desktop", "mobile"], use: desktop },
-    // Ajustes cambia datos de toda la tienda: solo en un proyecto.
-    { name: "mobile-panel", testMatch: PANEL, testIgnore: /panel-ajustes\.spec\.ts/, dependencies: ["desktop", "mobile"], use: mobile },
-    // La portada suma toda la tienda: corre sola al final, con la base sin pedidos de otras pruebas.
-    { name: "portada", testMatch: PORTADA, dependencies: ["desktop-panel", "mobile-panel"], use: mobile },
-  ],
-  webServer: process.env.PLAYWRIGHT_BASE_URL
-    ? undefined
-    : {
-        // Base local como el seed y build desde cero: el build pre-renderiza fichas con el stock
-        // y la caché de "use cache" en .next guardaría ids viejos tras un `supabase db reset`.
-        command: "node e2e/reset-db.mts && rm -rf .next && npm run build && npm run start",
-        url: baseURL,
-        reuseExistingServer: !process.env.CI,
-        timeout: 180_000,
-      },
-});
-</file>
-
-<file path=".github/workflows/ci.yml">
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-
-jobs:
-  check:
-    name: Lint, tipos y unitarias
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-
-  db:
-    name: Base de datos, integración, build y e2e
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npx supabase start
-      - run: npx supabase test db
-      - name: Variables de Supabase local
-        run: |
-          npx supabase status -o env \
-            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
-            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
-            | grep -E '^NEXT_PUBLIC_' | tr -d '"' >> "$GITHUB_ENV"
-          echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000" >> "$GITHUB_ENV"
-          # Clave VAPID pública de prueba (la misma de supabase/functions/.env).
-          echo "NEXT_PUBLIC_VAPID_PUBLIC_KEY=$(grep '^VAPID_PUBLIC_KEY=' supabase/functions/.env | cut -d= -f2)" >> "$GITHUB_ENV"
-      - run: npm run test:int
-      # El build pre-renderiza páginas con datos del catálogo: necesita Supabase.
-      - run: npm run build
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
 </file>
 
 <file path="e2e/helpers/supabase-admin.ts">

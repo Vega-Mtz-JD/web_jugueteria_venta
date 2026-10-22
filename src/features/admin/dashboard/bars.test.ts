@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { barScale } from "./bars";
+import { barAmount, barScale } from "./bars";
 
 describe("barScale", () => {
   it("todo en cero no divide por cero", () => {
@@ -18,5 +18,16 @@ describe("barScale", () => {
   });
   it("sin barras", () => {
     expect(barScale([])).toEqual([]);
+  });
+});
+
+describe("barAmount", () => {
+  it("monto corto para que quepa encima de la barra", () => {
+    expect(barAmount(0)).toBe("0");
+    expect(barAmount(34550)).toBe("346");
+    expect(barAmount(345000)).toBe("3,5 mil");
+    expect(barAmount(1250000)).toBe("13 mil");
+    expect(barAmount(-120000)).toBe("−1,2 mil");
+    expect(barAmount(-3500)).toBe("−35");
   });
 });

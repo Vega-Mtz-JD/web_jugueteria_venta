@@ -94,7 +94,13 @@ test("la portada muestra la ganancia y lleva a la lista que la forma", async ({ 
   await expect(page.getByRole("region", { name: "Totales" })).toContainText("Ganancia Bs 35");
 
   await page.goto("/panel?periodo=hoy");
-  await profit.getByRole("link", { name: /de ganancia$/ }).last().click();
+  await profit.getByRole("link", { name: "te costaron Bs 60" }).click();
+  await expect(page).toHaveURL(/\/panel\/ventas\?periodo=hoy$/);
+
+  await page.goto("/panel?periodo=hoy");
+  const today = profit.getByRole("link", { name: /de ganancia/ }).last();
+  await expect(today).toHaveAccessibleName(/Bs 35 de ganancia y Bs 20 sin costo anotado$/);
+  await today.click();
   await expect(page).toHaveURL(/\/panel\/ventas\?desde=\d{4}-\d{2}-\d{2}&hasta=\d{4}-\d{2}-\d{2}$/);
   await expect(page.getByRole("region", { name: "Totales" })).toContainText("Ganancia Bs 35");
 });

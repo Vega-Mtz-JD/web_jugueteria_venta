@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { formatBs } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { barScale } from "./bars";
+import { barAmount, barScale } from "./bars";
 import { barLabel } from "./period";
 import type { Bar } from "./queries";
 import { salesHref } from "./sales-filter";
-
-const short = (cents: number) => formatBs(cents).replace("Bs ", "");
 
 /** Barras de ganancia hechas a mano: cada una lleva a la lista de ventas de su día, semana o mes. */
 export function ProfitBars({ bars }: { bars: Bar[] }) {
@@ -22,12 +20,14 @@ export function ProfitBars({ bars }: { bars: Bar[] }) {
           <li key={b.idx} className="min-w-0 flex-1">
             <Link
               href={salesHref({ from: b.from, to: b.to })}
-              aria-label={`${label}: ${formatBs(b.profitCents)} de ganancia`}
+              aria-label={`${label}: ${formatBs(b.profitCents)} de ganancia${b.withoutCostCents > 0 ? ` y ${formatBs(b.withoutCostCents)} sin costo anotado` : ""}`}
               className="group flex flex-col items-stretch rounded-lg px-0.5 pt-1 hover:bg-crema-2"
             >
-              <span aria-hidden className="truncate text-center text-[11px] font-semibold tabular-nums text-tinta-suave sm:text-xs">
-                {short(b.profitCents)}
+              <span aria-hidden className="text-center text-[11px] leading-tight font-semibold tabular-nums text-tinta-suave break-words sm:text-xs">
+                {barAmount(b.profitCents)}
               </span>
+              {/* Ventas sin costo anotado: no entran en la ganancia, pero hubo ventas. */}
+              <span aria-hidden className="h-3 text-center text-[10px] leading-3 font-bold text-madera">{b.withoutCostCents > 0 ? "+?" : ""}</span>
               <span aria-hidden className="flex h-28 items-end">
                 {!s.negative && (
                   <span

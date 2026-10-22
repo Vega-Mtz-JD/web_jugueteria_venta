@@ -308,7 +308,7 @@ begin
     select p.id, p.name, p.stock, coalesce(s.units, 0) as sold30d
     from public.products p
     left join sold30 s on s.product_id = p.id
-    where p.is_active and p.stock between 0 and 3
+    where p.is_active and not p.is_sample and p.stock between 0 and 3
     order by sold30d desc, p.stock, p.name
     limit 10
   ),
@@ -341,7 +341,8 @@ begin
                               order by pu.received_at desc, i.id desc limit 1))
                   order by l.sold30d desc, l.stock, l.name) from low l), '[]'::jsonb),
       'lowStockCount', (select count(*) from public.products p where p.is_active and p.stock between 1 and 3),
-      'outOfStockCount', (select count(*) from public.products p where p.is_active and p.stock = 0)),
+      -- Igual que el filtro 'agotados' de Productos (visibles u ocultos), al que lleva el enlace.
+      'outOfStockCount', (select count(*) from public.products p where p.stock = 0)),
     'inventory', jsonb_build_object(
       'products', (select count(*) from inv),
       'units', (select coalesce(sum(units), 0) from inv),

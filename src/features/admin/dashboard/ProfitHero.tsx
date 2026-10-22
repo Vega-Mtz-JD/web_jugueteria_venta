@@ -31,7 +31,10 @@ export function ProfitHero({ data, period }: { data: DashboardSales; period: Per
         <Link href={salesHref({ period })} className={link}>
           Vendiste {formatBs(cur.salesCents)} ({plural(cur.count, "venta", "ventas")}, {plural(cur.units, "juego", "juegos")})
         </Link>{" "}
-        · te costaron {formatBs(cur.costCents)}
+        ·{" "}
+        <Link href={salesHref({ period })} className={link}>
+          te costaron {formatBs(cur.costCents)}
+        </Link>
       </p>
       <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm">
         {CHANNELS.map((c) => (
@@ -46,7 +49,7 @@ export function ProfitHero({ data, period }: { data: DashboardSales; period: Per
           <Link href={salesHref({ period, withoutCost: true })} className="font-semibold underline-offset-4 hover:underline">
             {formatBs(cur.withoutCostCents)} en ventas sin costo anotado
           </Link>
-          : no entran en la ganancia
+          : no entran en la ganancia{data.bars.some((b) => b.withoutCostCents > 0) && " (en las barras, marcadas con +?)"}
         </p>
       )}
     </section>

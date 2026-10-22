@@ -46,6 +46,11 @@ export function InventoryCard({ inv }: { inv: DashboardNow["inventory"] }) {
           <dd className="font-serif text-xl font-extrabold tabular-nums text-verde">{formatBs(inv.potentialProfitCents)}</dd>
         </div>
       </dl>
+      {(inv.withoutCost.products > 0 || inv.withoutPrice.products > 0) && (
+        <p className="mt-1 text-sm text-muted-foreground">
+          Solo cuenta los juegos con costo y precio: faltan {inv.withoutCost.products} sin costo y {inv.withoutPrice.products} sin precio.
+        </p>
+      )}
       <Missing
         title={`${n(inv.withoutCost.products, "juego", "juegos")} sin costo anotado (${n(inv.withoutCost.units, "unidad", "unidades")})`}
         items={inv.withoutCost.items}
